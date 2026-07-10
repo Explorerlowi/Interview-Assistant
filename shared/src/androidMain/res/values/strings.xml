@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="common_ok">OK</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="login_title">Login</string>
+    <string name="login_username">Username</string>
+    <string name="login_btn">Sign in</string>
+</resources>

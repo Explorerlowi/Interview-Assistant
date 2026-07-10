@@ -1,0 +1,6 @@
+/* Localizable.strings (English) */
+"common_ok" = "OK";
+"common_cancel" = "Cancel";
+"login_title" = "Login";
+"login_username" = "Username";
+"login_btn" = "Sign in";

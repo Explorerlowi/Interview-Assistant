@@ -1,0 +1,6 @@
+/* Localizable.strings (Chinese) */
+"common_ok" = "确定";
+"common_cancel" = "取消";
+"login_title" = "登录";
+"login_username" = "用户名";
+"login_btn" = "登录";

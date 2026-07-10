@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="common_ok">确定</string>
+    <string name="common_cancel">取消</string>
+    <string name="login_title">登录</string>
+    <string name="login_username">用户名</string>
+    <string name="login_btn">登录</string>
+</resources>

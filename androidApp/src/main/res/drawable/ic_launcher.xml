@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 简单的纯 XML 启动图标（避免缺少 mipmap png 导致编译失败） -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#6750A4" />
+        </shape>
+    </item>
+
+    <item
+        android:gravity="center">
+        <shape android:shape="oval">
+            <size
+                android:width="72dp"
+                android:height="72dp" />
+            <solid android:color="#FFFFFF" />
+        </shape>
+    </item>
+
+    <item
+        android:gravity="center">
+        <shape android:shape="oval">
+            <size
+                android:width="48dp"
+                android:height="48dp" />
+            <solid android:color="#6750A4" />
+        </shape>
+    </item>
+</layer-list>

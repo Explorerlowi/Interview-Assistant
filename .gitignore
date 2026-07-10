@@ -1,0 +1,50 @@
+*.iml
+.gradle
+.idea
+.DS_Store
+build
+captures
+.externalNativeBuild
+.cxx
+local.properties
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+.idea/dictionaries
+.idea/libraries
+.idea/caches
+.idea/codeStyles
+.idea/encodings.xml
+.idea/gradle.xml
+.idea/misc.xml
+.idea/runConfigurations.xml
+.idea/vcs.xml
+
+# Kotlin Multiplatform
+.kotlin
+
+# Android
+.idea/compiler.xml
+.idea/jarRepositories.xml
+.idea/kotlinc.xml
+.idea/modules
+
+# Signing
+keystore.properties
+*.jks
+*.keystore
+!androidApp/debug.keystore
+
+# Desktop
+desktopApp/build/
+*.msi
+*.dmg
+*.deb
+
+# iOS
+iosApp/iosApp.xcodeproj/project.xcworkspace/
+iosApp/iosApp.xcodeproj/xcuserdata/
+iosApp/Pods/
+iosApp/iosApp.xcworkspace/
+DerivedData/
