@@ -14,6 +14,12 @@ sealed class AppError : Throwable() {
         private fun readResolve(): Any = Unauthorized
     }
 
+    data class Configuration(override val message: String) : AppError()
+
+    data class Permission(override val message: String) : AppError()
+
+    data class InvalidData(override val message: String) : AppError()
+
     data class Unknown(override val cause: Throwable? = null) : AppError() {
         override val message: String?
             get() = cause?.message

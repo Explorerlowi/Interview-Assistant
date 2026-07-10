@@ -9,6 +9,7 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.http.takeFrom
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
@@ -18,16 +19,16 @@ import kotlinx.serialization.json.Json
  *
  * Engine is provided by each platform via [createHttpClientEngine].
  *
- * @param baseUrl API root URL; defaults to [ApiConfig.BASE_URL].
+ * @param baseUrl Optional API root URL. Provider clients generally pass absolute URLs.
  */
 class ApiClient(
-    private val baseUrl: String = ApiConfig.BASE_URL,
+    private val baseUrl: String? = null,
 ) {
     val httpClient: HttpClient = HttpClient(createHttpClientEngine()) {
         expectSuccess = false
 
         defaultRequest {
-            url.takeFrom(baseUrl)
+            baseUrl?.takeIf(String::isNotBlank)?.let(url::takeFrom)
         }
 
         install(ContentNegotiation) {
@@ -46,7 +47,12 @@ class ApiClient(
                     platformLog("Ktor", message)
                 }
             }
-            level = LogLevel.INFO
+            // Signed WebSocket URLs contain credentials, so provider traffic is never logged here.
+            level = LogLevel.NONE
+        }
+
+        install(WebSockets) {
+            pingInterval = 20_000
         }
 
         HttpResponseValidator {

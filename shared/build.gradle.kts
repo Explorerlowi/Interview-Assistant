@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinSerialization)
     alias(libs.plugins.kotlinCocoapods)
+    alias(libs.plugins.sqldelight)
 }
 
 kotlin {
@@ -45,17 +46,22 @@ kotlin {
                 implementation(libs.ktor.client.content.negotiation)
                 implementation(libs.ktor.serialization.kotlinx.json)
                 implementation(libs.ktor.client.logging)
+                implementation(libs.ktor.client.websockets)
                 implementation(libs.kotlinx.coroutines.core)
                 implementation(libs.koin.core)
                 implementation(libs.kotlinx.serialization.json)
                 implementation(libs.multiplatform.settings)
                 implementation(libs.multiplatform.settings.coroutines)
+                implementation(libs.sqldelight.runtime)
+                implementation(libs.sqldelight.coroutines)
             }
         }
         val commonTest by getting {
             dependencies {
                 implementation(libs.kotlin.test)
                 implementation(libs.kotlinx.coroutines.test)
+                implementation(libs.ktor.client.mock)
+                implementation(libs.multiplatform.settings.test)
             }
         }
         val androidMain by getting {
@@ -63,11 +69,15 @@ kotlin {
                 implementation(libs.ktor.client.okhttp)
                 implementation(libs.kotlinx.coroutines.android)
                 implementation(libs.koin.android)
+                implementation(libs.sqldelight.android.driver)
             }
         }
         val desktopMain by getting {
             dependencies {
                 implementation(libs.ktor.client.okhttp)
+                implementation(libs.kotlinx.coroutines.swing)
+                implementation(libs.sqldelight.sqlite.driver)
+                implementation(libs.jna.platform)
             }
         }
         val iosX64Main by getting
@@ -80,7 +90,16 @@ kotlin {
             iosSimulatorArm64Main.dependsOn(this)
             dependencies {
                 implementation(libs.ktor.client.darwin)
+                implementation(libs.sqldelight.native.driver)
             }
+        }
+    }
+}
+
+sqldelight {
+    databases {
+        create("InterviewDatabase") {
+            packageName.set("com.example.interviewassistant.database")
         }
     }
 }

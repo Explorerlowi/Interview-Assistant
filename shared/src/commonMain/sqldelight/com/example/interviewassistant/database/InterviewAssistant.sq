@@ -1,0 +1,204 @@
+CREATE TABLE ResumeEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    display_name TEXT NOT NULL,
+    original_file_name TEXT NOT NULL,
+    stored_path TEXT NOT NULL,
+    mime_type TEXT NOT NULL,
+    ocr_status TEXT NOT NULL,
+    ocr_text TEXT,
+    ocr_error TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE OcrJobEntity (
+    resume_id TEXT NOT NULL PRIMARY KEY REFERENCES ResumeEntity(id) ON DELETE CASCADE,
+    provider_job_id TEXT,
+    state TEXT NOT NULL,
+    progress_current INTEGER NOT NULL,
+    progress_total INTEGER NOT NULL,
+    result_url TEXT,
+    error_message TEXT,
+    updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE InterviewSessionEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    resume_id TEXT NOT NULL REFERENCES ResumeEntity(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    status TEXT NOT NULL,
+    trigger_mode TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+CREATE TABLE TranscriptSegmentEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    session_id TEXT NOT NULL REFERENCES InterviewSessionEntity(id) ON DELETE CASCADE,
+    sequence INTEGER NOT NULL,
+    text TEXT NOT NULL,
+    is_final INTEGER NOT NULL,
+    created_at INTEGER NOT NULL
+);
+
+CREATE TABLE AssistantAnswerEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    session_id TEXT NOT NULL REFERENCES InterviewSessionEntity(id) ON DELETE CASCADE,
+    question TEXT NOT NULL,
+    content TEXT NOT NULL,
+    model TEXT NOT NULL,
+    status TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+);
+
+selectAllResumes:
+SELECT * FROM ResumeEntity ORDER BY updated_at DESC;
+
+selectResumeById:
+SELECT * FROM ResumeEntity WHERE id = ?;
+
+insertResume:
+INSERT INTO ResumeEntity(
+    id,
+    display_name,
+    original_file_name,
+    stored_path,
+    mime_type,
+    ocr_status,
+    ocr_text,
+    ocr_error,
+    created_at,
+    updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateResume:
+UPDATE ResumeEntity
+SET display_name = ?,
+    original_file_name = ?,
+    stored_path = ?,
+    mime_type = ?,
+    ocr_status = ?,
+    ocr_text = ?,
+    ocr_error = ?,
+    created_at = ?,
+    updated_at = ?
+WHERE id = ?;
+
+deleteResume:
+DELETE FROM ResumeEntity WHERE id = ?;
+
+upsertOcrJob:
+INSERT OR REPLACE INTO OcrJobEntity(
+    resume_id,
+    provider_job_id,
+    state,
+    progress_current,
+    progress_total,
+    result_url,
+    error_message,
+    updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+selectOcrJobByResumeId:
+SELECT * FROM OcrJobEntity WHERE resume_id = ?;
+
+selectRecoverableOcrJobs:
+SELECT * FROM OcrJobEntity
+WHERE state IN ('QUEUED', 'PENDING', 'RUNNING')
+ORDER BY updated_at ASC;
+
+deleteOcrJob:
+DELETE FROM OcrJobEntity WHERE resume_id = ?;
+
+selectAllSessions:
+SELECT * FROM InterviewSessionEntity ORDER BY updated_at DESC;
+
+selectSessionsByResume:
+SELECT * FROM InterviewSessionEntity WHERE resume_id = ? ORDER BY updated_at DESC;
+
+selectSessionById:
+SELECT * FROM InterviewSessionEntity WHERE id = ?;
+
+insertSession:
+INSERT INTO InterviewSessionEntity(
+    id,
+    resume_id,
+    title,
+    status,
+    trigger_mode,
+    created_at,
+    updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?);
+
+updateSession:
+UPDATE InterviewSessionEntity
+SET resume_id = ?,
+    title = ?,
+    status = ?,
+    trigger_mode = ?,
+    created_at = ?,
+    updated_at = ?
+WHERE id = ?;
+
+deleteSession:
+DELETE FROM InterviewSessionEntity WHERE id = ?;
+
+selectTranscriptsBySession:
+SELECT * FROM TranscriptSegmentEntity WHERE session_id = ? ORDER BY sequence ASC;
+
+upsertTranscript:
+INSERT OR REPLACE INTO TranscriptSegmentEntity(
+    id,
+    session_id,
+    sequence,
+    text,
+    is_final,
+    created_at
+) VALUES (?, ?, ?, ?, ?, ?);
+
+deleteTranscriptsBySession:
+DELETE FROM TranscriptSegmentEntity WHERE session_id = ?;
+
+selectAnswersBySession:
+SELECT * FROM AssistantAnswerEntity WHERE session_id = ? ORDER BY created_at ASC;
+
+upsertAnswer:
+INSERT OR REPLACE INTO AssistantAnswerEntity(
+    id,
+    session_id,
+    question,
+    content,
+    model,
+    status,
+    created_at,
+    updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteAnswersBySession:
+DELETE FROM AssistantAnswerEntity WHERE session_id = ?;
+
+markInterruptedAnswers:
+UPDATE AssistantAnswerEntity
+SET status = 'INTERRUPTED', updated_at = ?
+WHERE status = 'GENERATING';
+
+pauseActiveSessions:
+UPDATE InterviewSessionEntity
+SET status = 'PAUSED', updated_at = ?
+WHERE status IN ('LISTENING', 'QUESTION_READY', 'GENERATING');
+
+deleteAllAnswers:
+DELETE FROM AssistantAnswerEntity;
+
+deleteAllTranscripts:
+DELETE FROM TranscriptSegmentEntity;
+
+deleteAllSessions:
+DELETE FROM InterviewSessionEntity;
+
+deleteAllOcrJobs:
+DELETE FROM OcrJobEntity;
+
+deleteAllResumes:
+DELETE FROM ResumeEntity;

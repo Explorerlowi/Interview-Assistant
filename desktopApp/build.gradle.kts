@@ -46,6 +46,11 @@ compose.desktop {
             targetFormats(org.jetbrains.compose.desktop.application.dsl.TargetFormat.Msi)
             packageName = "Interview Assistant"
             packageVersion = desktopAppVersion
+            // SQLDelight JDBC driver needs java.sql; jlink omits it unless listed explicitly.
+            modules("java.sql")
+            windows {
+                iconFile.set(project.file("icons/icon.ico"))
+            }
         }
     }
 }
