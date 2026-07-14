@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -32,9 +34,10 @@ import com.example.interviewassistant.android.feature.interviewassistant.Provide
 import com.example.interviewassistant.core.design.theme.AppDesign
 import com.example.interviewassistant.core.i18n.AppStringId
 import com.example.interviewassistant.core.i18n.StringsProvider
-import com.example.interviewassistant.feature.interviewassistant.domain.model.AnswerTriggerMode
 import com.example.interviewassistant.feature.interviewassistant.presentation.state.InterviewSessionUiEffect
 import com.example.interviewassistant.feature.interviewassistant.presentation.state.InterviewSessionUiEvent
+import com.example.interviewassistant.feature.interviewassistant.presentation.state.ProviderSettingsUiEffect
+import com.example.interviewassistant.feature.interviewassistant.presentation.state.ResumeLibraryUiEffect
 import com.example.interviewassistant.feature.interviewassistant.presentation.viewmodel.InterviewSessionViewModel
 import com.example.interviewassistant.feature.interviewassistant.presentation.viewmodel.ProviderSettingsViewModel
 import com.example.interviewassistant.feature.interviewassistant.presentation.viewmodel.ResumeLibraryViewModel
@@ -58,6 +61,7 @@ fun MainShellScreen(
 ) {
     var destination by remember { mutableStateOf(MainDestination.ASSISTANT) }
     var showWorkspace by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
     val resumeViewModel = remember { GlobalContext.get().get<ResumeLibraryViewModel>() }
     val historyViewModel = remember { GlobalContext.get().get<SessionHistoryViewModel>() }
     val sessionViewModel = remember { GlobalContext.get().get<InterviewSessionViewModel>() }
@@ -72,6 +76,20 @@ fun MainShellScreen(
             if (effect == InterviewSessionUiEffect.SessionCompleted) showWorkspace = false
         }
     }
+    LaunchedEffect(settingsViewModel) {
+        settingsViewModel.effect.collect { effect ->
+            if (effect == ProviderSettingsUiEffect.Saved) {
+                snackbarHostState.showSnackbar(strings.get(AppStringId.SETTINGS_SAVED))
+            }
+        }
+    }
+    LaunchedEffect(resumeViewModel) {
+        resumeViewModel.effect.collect { effect ->
+            if (effect is ResumeLibraryUiEffect.ImportCompleted) {
+                snackbarHostState.showSnackbar(strings.get(AppStringId.IMPORT_RESUME_COMPLETED))
+            }
+        }
+    }
     DisposableEffect(Unit) {
         onDispose {
             resumeViewModel.onCleared()
@@ -83,6 +101,7 @@ fun MainShellScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
             bottomBar = {
                 NavigationBar {
                     MainDestination.entries.forEach { item ->
@@ -110,7 +129,7 @@ fun MainShellScreen(
                                 InterviewSessionUiEvent.StartSession(
                                     resumeId = resume.id,
                                     title = resume.displayName,
-                                    triggerMode = AnswerTriggerMode.MANUAL,
+                                    triggerMode = settingsState.configuration.answerTriggerMode,
                                 ),
                             )
                             showWorkspace = true
@@ -150,7 +169,7 @@ fun MainShellScreen(
                 strings = strings,
                 onEvent = sessionViewModel::onEvent,
                 onNavigateBack = {
-                    sessionViewModel.onEvent(InterviewSessionUiEvent.StopListening)
+                    sessionViewModel.onEvent(InterviewSessionUiEvent.LeaveWorkspace)
                     showWorkspace = false
                 },
             )

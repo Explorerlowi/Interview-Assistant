@@ -18,13 +18,14 @@ data class InterviewSessionUiState(
     val currentQuestion: String = "",
     val streamingAnswer: String = "",
     val triggerMode: AnswerTriggerMode = AnswerTriggerMode.MANUAL,
+    val isLoadingSession: Boolean = false,
     val isListening: Boolean = false,
     val isGenerating: Boolean = false,
     val errorMessage: String? = null,
 )
 
 /**
- * Live-workspace events accepted by [InterviewSessionViewModel].
+ * Live-workspace events accepted by [com.example.interviewassistant.feature.interviewassistant.presentation.viewmodel.InterviewSessionViewModel].
  */
 sealed interface InterviewSessionUiEvent {
     data class StartSession(
@@ -41,6 +42,8 @@ sealed interface InterviewSessionUiEvent {
     data object CancelGeneration : InterviewSessionUiEvent
     data class SetTriggerMode(val mode: AnswerTriggerMode) : InterviewSessionUiEvent
     data object CompleteSession : InterviewSessionUiEvent
+    /** Leaves the workspace without completing the session; cancels recognition and generation. */
+    data object LeaveWorkspace : InterviewSessionUiEvent
     data object ClearError : InterviewSessionUiEvent
 }
 

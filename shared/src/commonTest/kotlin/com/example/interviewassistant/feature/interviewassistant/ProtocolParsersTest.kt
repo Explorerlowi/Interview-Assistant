@@ -83,6 +83,22 @@ class ProtocolParsersTest {
     }
 
     @Test
+    fun `iFlytek rotation flushes pending partial as final`() {
+        assertEquals(
+            "半句话",
+            XunfeiSessionPolicy.pendingFinalOnRotate(lastPartialText = "半句话", emittedFinal = false),
+        )
+        assertEquals(
+            null,
+            XunfeiSessionPolicy.pendingFinalOnRotate(lastPartialText = "半句话", emittedFinal = true),
+        )
+        assertEquals(
+            null,
+            XunfeiSessionPolicy.pendingFinalOnRotate(lastPartialText = "   ", emittedFinal = false),
+        )
+    }
+
+    @Test
     fun `prompt builder keeps current question and bounds oversized resume`() {
         val messages = InterviewPromptBuilder().build(
             context = InterviewAnswerContext(

@@ -13,6 +13,8 @@ import com.example.interviewassistant.feature.interviewassistant.domain.reposito
 import com.example.interviewassistant.feature.interviewassistant.domain.repository.ResumeRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Imports resumes and drives the recoverable PaddleOCR job lifecycle.
@@ -25,6 +27,9 @@ class ResumeOcrCoordinator(
     private val pollIntervalMillis: Long = DEFAULT_POLL_INTERVAL_MILLIS,
     private val maxPollAttempts: Int = DEFAULT_MAX_POLL_ATTEMPTS,
 ) {
+    private val processLocksGuard = Mutex()
+    private val processLocks = mutableMapOf<String, Mutex>()
+
     /**
      * Copies a user-selected document and processes it to completion.
      */
@@ -45,8 +50,37 @@ class ResumeOcrCoordinator(
 
     /**
      * Continues a queued or interrupted OCR job.
+     *
+     * Concurrent calls for the same [resumeId] share a single in-flight pipeline; waiters
+     * receive the latest resume state without re-submitting to PaddleOCR.
      */
     suspend fun process(resumeId: String): AppResult<Resume> {
+        val mutex = mutexFor(resumeId)
+        if (!mutex.tryLock()) {
+            mutex.withLock {
+                return resultForExisting(resumeId)
+            }
+        }
+        return try {
+            val existing = resumes.get(resumeId)
+            if (existing?.ocrStatus == OcrStatus.READY && !existing.ocrText.isNullOrBlank()) {
+                AppResult.Success(existing)
+            } else {
+                processLocked(resumeId)
+            }
+        } finally {
+            mutex.unlock()
+        }
+    }
+
+    /**
+     * Resumes every persisted OCR job after application startup.
+     */
+    suspend fun recoverPendingJobs() {
+        resumes.recoverableOcrJobs().forEach { process(it.resumeId) }
+    }
+
+    private suspend fun processLocked(resumeId: String): AppResult<Resume> {
         val token = providers.paddleToken()
             ?: return fail(resumeId, "PaddleOCR token is not configured") { AppError.Configuration(it) }
         val resume = resumes.get(resumeId)
@@ -81,11 +115,30 @@ class ResumeOcrCoordinator(
         }
     }
 
-    /**
-     * Resumes every persisted OCR job after application startup.
-     */
-    suspend fun recoverPendingJobs() {
-        resumes.recoverableOcrJobs().forEach { process(it.resumeId) }
+    private suspend fun resultForExisting(resumeId: String): AppResult<Resume> {
+        val resume = resumes.get(resumeId)
+            ?: return AppResult.Error(AppError.InvalidData("Resume not found"))
+        return when (resume.ocrStatus) {
+            OcrStatus.READY -> {
+                if (resume.ocrText.isNullOrBlank()) {
+                    AppResult.Error(AppError.InvalidData("OCR completed without resume text"))
+                } else {
+                    AppResult.Success(resume)
+                }
+            }
+            OcrStatus.FAILED -> {
+                AppResult.Error(AppError.InvalidData(resume.ocrError ?: "OCR request failed"))
+            }
+            OcrStatus.QUEUED, OcrStatus.PENDING, OcrStatus.RUNNING -> {
+                AppResult.Error(AppError.InvalidData("OCR did not finish"))
+            }
+        }
+    }
+
+    private suspend fun mutexFor(resumeId: String): Mutex {
+        return processLocksGuard.withLock {
+            processLocks.getOrPut(resumeId) { Mutex() }
+        }
     }
 
     private suspend fun pollUntilComplete(

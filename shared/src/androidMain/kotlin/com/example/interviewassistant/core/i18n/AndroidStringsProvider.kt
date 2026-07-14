@@ -26,6 +26,7 @@ class AndroidStringsProvider(private val context: Context) : StringsProvider {
             AppStringId.RESUME_LIBRARY_TITLE -> R.string.resume_library_title
             AppStringId.RECENT_SESSIONS_TITLE -> R.string.recent_sessions_title
             AppStringId.IMPORT_RESUME -> R.string.import_resume
+            AppStringId.IMPORT_RESUME_COMPLETED -> R.string.import_resume_completed
             AppStringId.RESUME_EMPTY -> R.string.resume_empty
             AppStringId.SESSION_EMPTY -> R.string.session_empty
             AppStringId.SELECT_RESUME -> R.string.select_resume

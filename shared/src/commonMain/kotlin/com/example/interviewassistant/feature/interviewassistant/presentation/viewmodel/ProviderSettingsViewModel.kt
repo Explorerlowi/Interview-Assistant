@@ -7,6 +7,7 @@ import com.example.interviewassistant.feature.interviewassistant.presentation.st
 import com.example.interviewassistant.feature.interviewassistant.presentation.state.ProviderSettingsUiEvent
 import com.example.interviewassistant.feature.interviewassistant.presentation.state.ProviderSettingsUiState
 import com.example.interviewassistant.presentation.viewmodel.BaseViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -36,16 +37,34 @@ class ProviderSettingsViewModel(
         when (event) {
             is ProviderSettingsUiEvent.Save -> {
                 viewModelScope.launch(dispatcherProvider.io) {
-                    mutableUiState.value = mutableUiState.value.copy(isSaving = true)
-                    repository.save(event.configuration, event.secrets)
-                    mutableUiState.value = readState()
-                    mutableEffect.emit(ProviderSettingsUiEffect.Saved)
+                    mutableUiState.value = mutableUiState.value.copy(isSaving = true, errorMessage = null)
+                    try {
+                        repository.save(event.configuration, event.secrets)
+                        mutableUiState.value = readState()
+                        mutableEffect.emit(ProviderSettingsUiEffect.Saved)
+                    } catch (cancelled: CancellationException) {
+                        mutableUiState.value = mutableUiState.value.copy(isSaving = false)
+                        throw cancelled
+                    } catch (error: Throwable) {
+                        mutableUiState.value = mutableUiState.value.copy(
+                            isSaving = false,
+                            errorMessage = error.message ?: "Failed to save settings",
+                        )
+                    }
                 }
             }
             ProviderSettingsUiEvent.ClearSecrets -> {
                 viewModelScope.launch(dispatcherProvider.io) {
-                    repository.clearSecrets()
-                    mutableUiState.value = readState()
+                    try {
+                        repository.clearSecrets()
+                        mutableUiState.value = readState()
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (error: Throwable) {
+                        mutableUiState.value = mutableUiState.value.copy(
+                            errorMessage = error.message ?: "Failed to clear secrets",
+                        )
+                    }
                 }
             }
             ProviderSettingsUiEvent.TestConnections -> {
@@ -53,12 +72,23 @@ class ProviderSettingsViewModel(
                     mutableUiState.value = mutableUiState.value.copy(
                         isTesting = true,
                         connectionResults = emptyMap(),
+                        errorMessage = null,
                     )
-                    val results = connectionTester.testAll()
-                    mutableUiState.value = mutableUiState.value.copy(
-                        isTesting = false,
-                        connectionResults = results,
-                    )
+                    try {
+                        val results = connectionTester.testAll()
+                        mutableUiState.value = mutableUiState.value.copy(
+                            isTesting = false,
+                            connectionResults = results,
+                        )
+                    } catch (cancelled: CancellationException) {
+                        mutableUiState.value = mutableUiState.value.copy(isTesting = false)
+                        throw cancelled
+                    } catch (error: Throwable) {
+                        mutableUiState.value = mutableUiState.value.copy(
+                            isTesting = false,
+                            errorMessage = error.message ?: "Connection test failed",
+                        )
+                    }
                 }
             }
             ProviderSettingsUiEvent.Refresh -> mutableUiState.value = readState()

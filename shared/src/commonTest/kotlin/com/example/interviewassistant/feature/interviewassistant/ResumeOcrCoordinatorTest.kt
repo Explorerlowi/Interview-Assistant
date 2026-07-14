@@ -17,12 +17,15 @@ import com.example.interviewassistant.feature.interviewassistant.domain.model.Xu
 import com.example.interviewassistant.feature.interviewassistant.domain.repository.ProviderConfigurationRepository
 import com.example.interviewassistant.feature.interviewassistant.domain.repository.ResumeRepository
 import com.example.interviewassistant.feature.interviewassistant.domain.usecase.ResumeOcrCoordinator
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 class ResumeOcrCoordinatorTest {
     @Test
@@ -68,7 +71,52 @@ class ResumeOcrCoordinatorTest {
         assertEquals(0, resumes.resumes.value.size)
     }
 
-    private class FakeGateway : PaddleOcrGateway {
+    @Test
+    fun `concurrent process for same resume submits once`() = runTest {
+        val resumes = FakeResumeRepository()
+        val gateway = CountingGateway()
+        val coordinator = ResumeOcrCoordinator(
+            resumes = resumes,
+            files = FakeFileStore(),
+            providers = FakeProviderRepository(),
+            gateway = gateway,
+            pollIntervalMillis = 0,
+            maxPollAttempts = 5,
+        )
+        val imported = resumes.import(
+            displayName = "候选人",
+            originalFileName = "resume.pdf",
+            mimeType = "application/pdf",
+            content = byteArrayOf(1, 2, 3),
+        )
+
+        val first = async { coordinator.process(imported.id) }
+        val second = async { coordinator.process(imported.id) }
+        val results = listOf(first.await(), second.await())
+
+        assertEquals(1, gateway.submitCount)
+        assertTrue(results.all { it is AppResult.Success<*> })
+        assertEquals(OcrStatus.READY, resumes.get(imported.id)?.ocrStatus)
+    }
+
+    private class CountingGateway : FakeGateway() {
+        var submitCount = 0
+
+        override suspend fun submit(
+            endpoint: String,
+            token: String,
+            model: String,
+            fileName: String,
+            mimeType: String,
+            content: ByteArray,
+        ): String {
+            submitCount += 1
+            delay(20)
+            return "job-1"
+        }
+    }
+
+    private open class FakeGateway : PaddleOcrGateway {
         var queryCount = 0
 
         override suspend fun submit(

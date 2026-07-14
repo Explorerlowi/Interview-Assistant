@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -30,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -72,7 +75,10 @@ fun InterviewWorkspaceScreen(
                     }
                 },
                 actions = {
-                    TextButton(onClick = { onEvent(InterviewSessionUiEvent.CompleteSession) }) {
+                    TextButton(
+                        enabled = !state.isLoadingSession && state.session != null,
+                        onClick = { onEvent(InterviewSessionUiEvent.CompleteSession) },
+                    ) {
                         Text(strings.get(AppStringId.COMPLETE_SESSION))
                     }
                 },
@@ -95,26 +101,34 @@ fun InterviewWorkspaceScreen(
             )
         },
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(AppDesign.spacing.lg)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(AppDesign.spacing.md),
+                .padding(padding),
         ) {
-            TriggerModeSelector(state.triggerMode, strings, onEvent)
-            if (permissionDenied) {
-                Text(
-                    strings.get(AppStringId.ERROR_PERMISSION_MICROPHONE),
-                    color = MaterialTheme.colorScheme.error,
-                )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(AppDesign.spacing.lg)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(AppDesign.spacing.md),
+            ) {
+                TriggerModeSelector(state.triggerMode, strings, onEvent)
+                if (permissionDenied) {
+                    Text(
+                        strings.get(AppStringId.ERROR_PERMISSION_MICROPHONE),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+                state.errorMessage?.let {
+                    Text(it, color = MaterialTheme.colorScheme.error)
+                }
+                TranscriptPanel(state, strings, onEvent)
+                AnswerPanel(state, strings)
             }
-            state.errorMessage?.let {
-                Text(it, color = MaterialTheme.colorScheme.error)
+            if (state.isLoadingSession) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }
-            TranscriptPanel(state, strings, onEvent)
-            AnswerPanel(state, strings)
         }
     }
 }
@@ -237,12 +251,14 @@ private fun WorkspaceControls(
     onListen: () -> Unit,
     onEvent: (InterviewSessionUiEvent) -> Unit,
 ) {
+    val sessionReady = !state.isLoadingSession && state.session != null && state.resume != null
     Surface(tonalElevation = AppDesign.spacing.xs) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(AppDesign.spacing.md),
             horizontalArrangement = Arrangement.spacedBy(AppDesign.spacing.sm),
         ) {
             Button(
+                enabled = sessionReady || state.isListening,
                 onClick = if (state.isListening) {
                     { onEvent(InterviewSessionUiEvent.StopListening) }
                 } else {
@@ -256,7 +272,7 @@ private fun WorkspaceControls(
                 )
             }
             Button(
-                enabled = state.currentQuestion.isNotBlank(),
+                enabled = sessionReady && (state.isGenerating || state.currentQuestion.isNotBlank()),
                 onClick = {
                     onEvent(
                         if (state.isGenerating) {

@@ -104,7 +104,10 @@ fun DesktopInterviewWorkspace(
                         checked = alwaysOnTop,
                         onCheckedChange = onAlwaysOnTopChange,
                     )
-                    TextButton(onClick = { onEvent(InterviewSessionUiEvent.CompleteSession) }) {
+                    TextButton(
+                        enabled = !state.isLoadingSession && state.session != null,
+                        onClick = { onEvent(InterviewSessionUiEvent.CompleteSession) },
+                    ) {
                         Text(strings.get(AppStringId.COMPLETE_SESSION))
                     }
                 },
@@ -281,12 +284,14 @@ private fun DesktopWorkspaceControls(
     strings: StringsProvider,
     onEvent: (InterviewSessionUiEvent) -> Unit,
 ) {
+    val sessionReady = !state.isLoadingSession && state.session != null && state.resume != null
     Surface(tonalElevation = AppDesign.spacing.xs) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(AppDesign.spacing.md),
             horizontalArrangement = Arrangement.spacedBy(AppDesign.spacing.sm),
         ) {
             Button(
+                enabled = sessionReady || state.isListening,
                 onClick = {
                     onEvent(
                         if (state.isListening) {
@@ -304,7 +309,7 @@ private fun DesktopWorkspaceControls(
                 )
             }
             Button(
-                enabled = state.currentQuestion.isNotBlank(),
+                enabled = sessionReady && (state.isGenerating || state.currentQuestion.isNotBlank()),
                 onClick = {
                     onEvent(
                         if (state.isGenerating) {

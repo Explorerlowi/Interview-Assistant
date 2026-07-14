@@ -69,6 +69,8 @@ class XunfeiSpeechRemoteDataSource(
         val startedAt = TimeProvider.currentTimeMillis()
         var sentFirstFrame = false
         var rotatedByLimit = false
+        var lastPartialText = ""
+        var emittedFinal = false
 
         client.webSocket(urlString = url) {
             val remoteDone = CompletableDeferred<Unit>()
@@ -96,9 +98,11 @@ class XunfeiSpeechRemoteDataSource(
                         val text = reducer.accept(result)
                         if (response.data.status == STATUS_LAST) {
                             this@channelFlow.send(SpeechRecognitionEvent.Final(text))
+                            emittedFinal = true
                             remoteDone.complete(Unit)
                             break
                         } else {
+                            lastPartialText = text
                             this@channelFlow.send(SpeechRecognitionEvent.Partial(text))
                         }
                     }
@@ -151,7 +155,16 @@ class XunfeiSpeechRemoteDataSource(
             }
             receiver.cancel()
         }
-        if (rotatedByLimit) send(SpeechRecognitionEvent.SessionRotated)
+        if (rotatedByLimit) {
+            val pending = XunfeiSessionPolicy.pendingFinalOnRotate(
+                lastPartialText = lastPartialText,
+                emittedFinal = emittedFinal,
+            )
+            if (pending != null) {
+                send(SpeechRecognitionEvent.Final(pending))
+            }
+            send(SpeechRecognitionEvent.SessionRotated)
+        }
     }
 
     private fun request(
@@ -201,6 +214,15 @@ object XunfeiSessionPolicy {
     /** Returns whether the active connection should be finalized and replaced. */
     fun shouldRotate(startedAtMillis: Long, nowMillis: Long): Boolean {
         return nowMillis - startedAtMillis >= SAFE_SESSION_MILLIS
+    }
+
+    /**
+     * Returns pending partial text that should be flushed as a synthetic Final before
+     * [SpeechRecognitionEvent.SessionRotated], or null when nothing needs flushing.
+     */
+    fun pendingFinalOnRotate(lastPartialText: String, emittedFinal: Boolean): String? {
+        if (emittedFinal) return null
+        return lastPartialText.trim().takeIf { it.isNotEmpty() }
     }
 }
 

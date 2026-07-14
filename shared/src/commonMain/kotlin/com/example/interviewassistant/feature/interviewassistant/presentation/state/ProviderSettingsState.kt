@@ -17,6 +17,7 @@ data class ProviderSettingsUiState(
     val isSaving: Boolean = false,
     val isTesting: Boolean = false,
     val connectionResults: Map<ProviderKind, ProviderConnectionResult> = emptyMap(),
+    val errorMessage: String? = null,
 )
 
 /**

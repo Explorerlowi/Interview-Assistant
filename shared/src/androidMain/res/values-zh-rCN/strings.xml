@@ -17,6 +17,7 @@
     <string name="resume_library_title">简历库</string>
     <string name="recent_sessions_title">最近会话</string>
     <string name="import_resume">导入简历</string>
+    <string name="import_resume_completed">简历已导入</string>
     <string name="resume_empty">请导入 PDF、JPG 或 PNG 简历开始使用。</string>
     <string name="session_empty">暂无面试会话。</string>
     <string name="select_resume">选择简历</string>

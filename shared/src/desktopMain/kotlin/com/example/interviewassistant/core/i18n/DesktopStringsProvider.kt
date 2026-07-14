@@ -23,6 +23,7 @@ class DesktopStringsProvider : StringsProvider {
             AppStringId.RESUME_LIBRARY_TITLE -> Text("Resume library", "简历库")
             AppStringId.RECENT_SESSIONS_TITLE -> Text("Recent sessions", "最近会话")
             AppStringId.IMPORT_RESUME -> Text("Import resume", "导入简历")
+            AppStringId.IMPORT_RESUME_COMPLETED -> Text("Resume imported", "简历已导入")
             AppStringId.RESUME_EMPTY -> Text(
                 "Import a PDF, JPG, or PNG resume to begin.",
                 "请导入 PDF、JPG 或 PNG 简历开始使用。",

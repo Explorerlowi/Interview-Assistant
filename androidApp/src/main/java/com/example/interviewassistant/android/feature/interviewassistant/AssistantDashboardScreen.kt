@@ -76,19 +76,25 @@ fun AssistantDashboardScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var viewingResumeId by remember { mutableStateOf<String?>(null) }
+    var importError by remember { mutableStateOf<String?>(null) }
     val viewingResume = resumeState.resumes.firstOrNull { it.id == viewingResumeId }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             scope.launch {
-                val document = withContext(Dispatchers.IO) { context.readDocument(uri) }
-                onResumeEvent(
-                    ResumeLibraryUiEvent.Import(
-                        displayName = document.fileName.substringBeforeLast('.'),
-                        fileName = document.fileName,
-                        mimeType = document.mimeType,
-                        content = document.content,
-                    ),
-                )
+                try {
+                    val document = withContext(Dispatchers.IO) { context.readDocument(uri) }
+                    importError = null
+                    onResumeEvent(
+                        ResumeLibraryUiEvent.Import(
+                            displayName = document.fileName.substringBeforeLast('.'),
+                            fileName = document.fileName,
+                            mimeType = document.mimeType,
+                            content = document.content,
+                        ),
+                    )
+                } catch (_: Throwable) {
+                    importError = strings.get(AppStringId.ERROR_GENERIC)
+                }
             }
         }
     }
@@ -121,6 +127,11 @@ fun AssistantDashboardScreen(
                 }
             }
             resumeState.errorMessage?.let { message ->
+                item {
+                    Text(message, color = MaterialTheme.colorScheme.error)
+                }
+            }
+            importError?.let { message ->
                 item {
                     Text(message, color = MaterialTheme.colorScheme.error)
                 }

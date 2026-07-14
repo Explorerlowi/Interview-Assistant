@@ -36,9 +36,12 @@ import com.example.interviewassistant.core.i18n.StringsProvider
 import com.example.interviewassistant.desktop.feature.interviewassistant.DesktopAssistantDashboard
 import com.example.interviewassistant.desktop.feature.interviewassistant.DesktopInterviewWorkspace
 import com.example.interviewassistant.desktop.feature.interviewassistant.DesktopProviderSettings
-import com.example.interviewassistant.feature.interviewassistant.domain.model.AnswerTriggerMode
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import com.example.interviewassistant.feature.interviewassistant.presentation.state.InterviewSessionUiEffect
 import com.example.interviewassistant.feature.interviewassistant.presentation.state.InterviewSessionUiEvent
+import com.example.interviewassistant.feature.interviewassistant.presentation.state.ProviderSettingsUiEffect
+import com.example.interviewassistant.feature.interviewassistant.presentation.state.ResumeLibraryUiEffect
 import com.example.interviewassistant.feature.interviewassistant.presentation.viewmodel.InterviewSessionViewModel
 import com.example.interviewassistant.feature.interviewassistant.presentation.viewmodel.ProviderSettingsViewModel
 import com.example.interviewassistant.feature.interviewassistant.presentation.viewmodel.ResumeLibraryViewModel
@@ -66,6 +69,7 @@ fun DesktopMainShell(
 ) {
     var destination by remember { mutableStateOf(DesktopDestination.ASSISTANT) }
     var showWorkspace by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
     val resumeViewModel = remember { GlobalContext.get().get<ResumeLibraryViewModel>() }
     val historyViewModel = remember { GlobalContext.get().get<SessionHistoryViewModel>() }
     val sessionViewModel = remember { GlobalContext.get().get<InterviewSessionViewModel>() }
@@ -78,6 +82,20 @@ fun DesktopMainShell(
     LaunchedEffect(sessionViewModel) {
         sessionViewModel.effect.collect { effect ->
             if (effect == InterviewSessionUiEffect.SessionCompleted) showWorkspace = false
+        }
+    }
+    LaunchedEffect(settingsViewModel) {
+        settingsViewModel.effect.collect { effect ->
+            if (effect == ProviderSettingsUiEffect.Saved) {
+                snackbarHostState.showSnackbar(strings.get(AppStringId.SETTINGS_SAVED))
+            }
+        }
+    }
+    LaunchedEffect(resumeViewModel) {
+        resumeViewModel.effect.collect { effect ->
+            if (effect is ResumeLibraryUiEffect.ImportCompleted) {
+                snackbarHostState.showSnackbar(strings.get(AppStringId.IMPORT_RESUME_COMPLETED))
+            }
         }
     }
     DisposableEffect(Unit) {
@@ -115,36 +133,42 @@ fun DesktopMainShell(
                     }
                 }
             }
-            when (destination) {
-                DesktopDestination.ASSISTANT -> DesktopAssistantDashboard(
-                    resumeState = resumeState,
-                    historyState = historyState,
-                    strings = strings,
-                    onResumeEvent = resumeViewModel::onEvent,
-                    onHistoryEvent = historyViewModel::onEvent,
-                    onStartSession = { resume ->
-                        sessionViewModel.onEvent(
-                            InterviewSessionUiEvent.StartSession(
-                                resumeId = resume.id,
-                                title = resume.displayName,
-                                triggerMode = AnswerTriggerMode.MANUAL,
-                            ),
-                        )
-                        showWorkspace = true
-                    },
-                    onOpenSession = { session ->
-                        sessionViewModel.onEvent(InterviewSessionUiEvent.OpenSession(session.id))
-                        showWorkspace = true
-                    },
-                )
-                DesktopDestination.MOCK_INTERVIEW -> DesktopPlaceholder(
-                    title = strings.get(AppStringId.MOCK_PLACEHOLDER_TITLE),
-                    description = strings.get(AppStringId.MOCK_PLACEHOLDER_DESCRIPTION),
-                )
-                DesktopDestination.SETTINGS -> DesktopProviderSettings(
-                    state = settingsState,
-                    strings = strings,
-                    onEvent = settingsViewModel::onEvent,
+            Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                when (destination) {
+                    DesktopDestination.ASSISTANT -> DesktopAssistantDashboard(
+                        resumeState = resumeState,
+                        historyState = historyState,
+                        strings = strings,
+                        onResumeEvent = resumeViewModel::onEvent,
+                        onHistoryEvent = historyViewModel::onEvent,
+                        onStartSession = { resume ->
+                            sessionViewModel.onEvent(
+                                InterviewSessionUiEvent.StartSession(
+                                    resumeId = resume.id,
+                                    title = resume.displayName,
+                                    triggerMode = settingsState.configuration.answerTriggerMode,
+                                ),
+                            )
+                            showWorkspace = true
+                        },
+                        onOpenSession = { session ->
+                            sessionViewModel.onEvent(InterviewSessionUiEvent.OpenSession(session.id))
+                            showWorkspace = true
+                        },
+                    )
+                    DesktopDestination.MOCK_INTERVIEW -> DesktopPlaceholder(
+                        title = strings.get(AppStringId.MOCK_PLACEHOLDER_TITLE),
+                        description = strings.get(AppStringId.MOCK_PLACEHOLDER_DESCRIPTION),
+                    )
+                    DesktopDestination.SETTINGS -> DesktopProviderSettings(
+                        state = settingsState,
+                        strings = strings,
+                        onEvent = settingsViewModel::onEvent,
+                    )
+                }
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier.align(Alignment.BottomCenter),
                 )
             }
         }
@@ -169,7 +193,7 @@ fun DesktopMainShell(
                 onAlwaysOnTopChange = onAlwaysOnTopChange,
                 onEvent = sessionViewModel::onEvent,
                 onNavigateBack = {
-                    sessionViewModel.onEvent(InterviewSessionUiEvent.StopListening)
+                    sessionViewModel.onEvent(InterviewSessionUiEvent.LeaveWorkspace)
                     showWorkspace = false
                 },
             )
