@@ -53,6 +53,7 @@ data class XunfeiConfiguration(
  * @property systemPrompt System message used when generating interview answers.
  * @property thinkingEnabled Enables DeepSeek thinking mode for the DeepSeek preset.
  * @property maxContextCharacters Character budget used when composing interview context.
+ * @property redactPersonalInfo Replaces personal info (phone, email, ID, etc.) before sending text to the model.
  */
 data class LlmConfiguration(
     val baseUrl: String = DEFAULT_BASE_URL,
@@ -60,6 +61,7 @@ data class LlmConfiguration(
     val systemPrompt: String = DEFAULT_SYSTEM_PROMPT,
     val thinkingEnabled: Boolean = false,
     val maxContextCharacters: Int = 24_000,
+    val redactPersonalInfo: Boolean = true,
 ) {
     companion object {
         const val DEFAULT_BASE_URL = "https://api.deepseek.com"

@@ -18,7 +18,12 @@
     <string name="recent_sessions_title">Recent sessions</string>
     <string name="import_resume">Import resume</string>
     <string name="import_resume_completed">Resume imported</string>
-    <string name="resume_empty">Import a PDF, JPG, or PNG resume to begin.</string>
+    <string name="import_resume_hint">Tap to choose, or drag / paste a PDF, JPG, or PNG</string>
+    <string name="import_resume_drop_active">Release to import</string>
+    <string name="import_resume_paste">Paste</string>
+    <string name="import_resume_unsupported">Only PDF, JPG, and PNG resumes are supported</string>
+    <string name="import_resume_clipboard_empty">Clipboard has no supported resume file or image</string>
+    <string name="resume_empty">Import a PDF, JPG, or PNG resume to begin. You can also drag or paste one here.</string>
     <string name="session_empty">No interview sessions yet.</string>
     <string name="select_resume">Select resume</string>
     <string name="start_session">Start session</string>
@@ -34,6 +39,13 @@
     <string name="resume_show_source">Source</string>
     <string name="resume_copy">Copy</string>
     <string name="resume_copied">Copied</string>
+    <string name="resume_edit">Edit</string>
+    <string name="resume_saved">Resume text saved</string>
+    <string name="resume_view_original">Original OCR</string>
+    <string name="resume_view_current">Current text</string>
+    <string name="resume_restore_original">Restore original</string>
+    <string name="resume_redact_preview">Privacy preview</string>
+    <string name="resume_redact_original">Show original</string>
     <string name="ocr_processing_hint">Parsing resume…</string>
     <string name="workspace_transcript">Live transcript</string>
     <string name="workspace_answer">Answer suggestion</string>
@@ -57,6 +69,7 @@
     <string name="settings_app_id">App ID</string>
     <string name="settings_system_prompt">System prompt</string>
     <string name="settings_thinking">Thinking mode</string>
+    <string name="settings_redact_pii">Hide personal info sent to the model</string>
     <string name="settings_configured">Configured</string>
     <string name="settings_not_configured">Not configured</string>
     <string name="settings_show_secret">Show secret</string>

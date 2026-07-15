@@ -89,6 +89,7 @@ class InterviewAnswerGenerator(
     private val providers: ProviderConfigurationRepository,
     private val gateway: OpenAiStreamGateway,
     private val promptBuilder: InterviewPromptBuilder,
+    private val privacyRedactor: PrivacyRedactor,
 ) {
     /** Model identifier currently selected in provider settings. */
     val model: String
@@ -103,8 +104,18 @@ class InterviewAnswerGenerator(
         val apiKey = providers.llmApiKey()
             ?: throw AppError.Configuration("Language-model API key is not configured")
         val configuration = providers.configuration.value.llm
+        // 脱敏只作用于出站文本，本地数据库仍保留原文
+        val effectiveContext = if (configuration.redactPersonalInfo) {
+            context.copy(
+                resumeText = privacyRedactor.redact(context.resumeText),
+                recentTranscript = privacyRedactor.redact(context.recentTranscript),
+                recentAnswers = context.recentAnswers.map(privacyRedactor::redact),
+            )
+        } else {
+            context
+        }
         val messages = promptBuilder.build(
-            context = context,
+            context = effectiveContext,
             maxCharacters = configuration.maxContextCharacters,
             systemPrompt = configuration.systemPrompt,
         )

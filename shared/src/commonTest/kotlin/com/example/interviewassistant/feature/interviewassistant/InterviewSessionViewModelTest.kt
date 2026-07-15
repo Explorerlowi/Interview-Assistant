@@ -26,6 +26,7 @@ import com.example.interviewassistant.feature.interviewassistant.domain.reposito
 import com.example.interviewassistant.feature.interviewassistant.domain.repository.SpeechRecognizer
 import com.example.interviewassistant.feature.interviewassistant.domain.usecase.InterviewAnswerGenerator
 import com.example.interviewassistant.feature.interviewassistant.domain.usecase.InterviewPromptBuilder
+import com.example.interviewassistant.feature.interviewassistant.domain.usecase.PrivacyRedactor
 import com.example.interviewassistant.feature.interviewassistant.presentation.state.InterviewSessionUiEvent
 import com.example.interviewassistant.feature.interviewassistant.presentation.viewmodel.InterviewSessionViewModel
 import kotlinx.coroutines.CoroutineDispatcher
@@ -210,6 +211,7 @@ class InterviewSessionViewModelTest {
                 providers = FakeProviderRepository(),
                 gateway = gateway,
                 promptBuilder = InterviewPromptBuilder(),
+                privacyRedactor = PrivacyRedactor(),
             ),
             dispatcherProvider = dispatcher,
         )

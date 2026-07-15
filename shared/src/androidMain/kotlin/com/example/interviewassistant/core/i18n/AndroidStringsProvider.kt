@@ -27,6 +27,11 @@ class AndroidStringsProvider(private val context: Context) : StringsProvider {
             AppStringId.RECENT_SESSIONS_TITLE -> R.string.recent_sessions_title
             AppStringId.IMPORT_RESUME -> R.string.import_resume
             AppStringId.IMPORT_RESUME_COMPLETED -> R.string.import_resume_completed
+            AppStringId.IMPORT_RESUME_HINT -> R.string.import_resume_hint
+            AppStringId.IMPORT_RESUME_DROP_ACTIVE -> R.string.import_resume_drop_active
+            AppStringId.IMPORT_RESUME_PASTE -> R.string.import_resume_paste
+            AppStringId.IMPORT_RESUME_UNSUPPORTED -> R.string.import_resume_unsupported
+            AppStringId.IMPORT_RESUME_CLIPBOARD_EMPTY -> R.string.import_resume_clipboard_empty
             AppStringId.RESUME_EMPTY -> R.string.resume_empty
             AppStringId.SESSION_EMPTY -> R.string.session_empty
             AppStringId.SELECT_RESUME -> R.string.select_resume
@@ -43,6 +48,13 @@ class AndroidStringsProvider(private val context: Context) : StringsProvider {
             AppStringId.RESUME_SHOW_SOURCE -> R.string.resume_show_source
             AppStringId.RESUME_COPY -> R.string.resume_copy
             AppStringId.RESUME_COPIED -> R.string.resume_copied
+            AppStringId.RESUME_EDIT -> R.string.resume_edit
+            AppStringId.RESUME_SAVED -> R.string.resume_saved
+            AppStringId.RESUME_VIEW_ORIGINAL -> R.string.resume_view_original
+            AppStringId.RESUME_VIEW_CURRENT -> R.string.resume_view_current
+            AppStringId.RESUME_RESTORE_ORIGINAL -> R.string.resume_restore_original
+            AppStringId.RESUME_REDACT_PREVIEW -> R.string.resume_redact_preview
+            AppStringId.RESUME_REDACT_ORIGINAL -> R.string.resume_redact_original
             AppStringId.OCR_PROCESSING_HINT -> R.string.ocr_processing_hint
             AppStringId.WORKSPACE_TRANSCRIPT -> R.string.workspace_transcript
             AppStringId.WORKSPACE_ANSWER -> R.string.workspace_answer
@@ -66,6 +78,7 @@ class AndroidStringsProvider(private val context: Context) : StringsProvider {
             AppStringId.SETTINGS_APP_ID -> R.string.settings_app_id
             AppStringId.SETTINGS_SYSTEM_PROMPT -> R.string.settings_system_prompt
             AppStringId.SETTINGS_THINKING -> R.string.settings_thinking
+            AppStringId.SETTINGS_REDACT_PII -> R.string.settings_redact_pii
             AppStringId.SETTINGS_CONFIGURED -> R.string.settings_configured
             AppStringId.SETTINGS_NOT_CONFIGURED -> R.string.settings_not_configured
             AppStringId.SETTINGS_SHOW_SECRET -> R.string.settings_show_secret

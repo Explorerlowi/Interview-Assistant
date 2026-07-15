@@ -65,6 +65,7 @@ class SqlDelightResumeRepository(
             ocrError = null,
             createdAt = now,
             updatedAt = now,
+            ocrOriginalText = null,
         )
         try {
             save(resume)
@@ -90,6 +91,7 @@ class SqlDelightResumeRepository(
                     mime_type = resume.mimeType,
                     ocr_status = resume.ocrStatus.name,
                     ocr_text = resume.ocrText,
+                    ocr_original_text = resume.ocrOriginalText,
                     ocr_error = resume.ocrError,
                     created_at = resume.createdAt,
                     updated_at = resume.updatedAt,
@@ -102,6 +104,7 @@ class SqlDelightResumeRepository(
                     mime_type = resume.mimeType,
                     ocr_status = resume.ocrStatus.name,
                     ocr_text = resume.ocrText,
+                    ocr_original_text = resume.ocrOriginalText,
                     ocr_error = resume.ocrError,
                     created_at = resume.createdAt,
                     updated_at = resume.updatedAt,
@@ -299,6 +302,7 @@ private fun ResumeEntity.toDomain(): Resume {
         ocrError = ocr_error,
         createdAt = created_at,
         updatedAt = updated_at,
+        ocrOriginalText = ocr_original_text ?: ocr_text,
     )
 }
 

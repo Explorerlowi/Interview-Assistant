@@ -13,6 +13,9 @@ enum class OcrStatus {
 
 /**
  * Resume source and extracted text stored locally.
+ *
+ * @property ocrText Current resume text used by the assistant (may be manually edited).
+ * @property ocrOriginalText Immutable OCR output captured when recognition finished.
  */
 data class Resume(
     val id: String,
@@ -25,7 +28,12 @@ data class Resume(
     val ocrError: String?,
     val createdAt: Long,
     val updatedAt: Long,
-)
+    val ocrOriginalText: String? = null,
+) {
+    /** Whether the working text differs from the initial OCR output. */
+    val hasEditedOcrText: Boolean
+        get() = !ocrOriginalText.isNullOrEmpty() && ocrText != ocrOriginalText
+}
 
 /**
  * Recoverable PaddleOCR job state.

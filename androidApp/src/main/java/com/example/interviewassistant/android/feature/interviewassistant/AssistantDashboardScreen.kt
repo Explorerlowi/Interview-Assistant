@@ -1,5 +1,7 @@
 package com.example.interviewassistant.android.feature.interviewassistant
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.BackHandler
@@ -11,6 +13,13 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.content.ReceiveContentListener
+import androidx.compose.foundation.content.contentReceiver
+import androidx.compose.foundation.draganddrop.dragAndDropTarget
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,9 +49,20 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draganddrop.DragAndDropEvent
+import androidx.compose.ui.draganddrop.DragAndDropTarget
+import androidx.compose.ui.draganddrop.toAndroidDragEvent
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isMetaPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.example.interviewassistant.core.design.theme.AppDesign
@@ -52,6 +72,7 @@ import com.example.interviewassistant.feature.interviewassistant.data.remote.ocr
 import com.example.interviewassistant.feature.interviewassistant.domain.model.InterviewSession
 import com.example.interviewassistant.feature.interviewassistant.domain.model.OcrStatus
 import com.example.interviewassistant.feature.interviewassistant.domain.model.Resume
+import com.example.interviewassistant.feature.interviewassistant.domain.usecase.PrivacyRedactor
 import com.example.interviewassistant.feature.interviewassistant.presentation.state.ResumeLibraryUiEvent
 import com.example.interviewassistant.feature.interviewassistant.presentation.state.ResumeLibraryUiState
 import com.example.interviewassistant.feature.interviewassistant.presentation.state.SessionHistoryUiEvent
@@ -63,6 +84,7 @@ import kotlinx.coroutines.withContext
 /**
  * Android dashboard containing resume OCR status and recoverable session history.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AssistantDashboardScreen(
     resumeState: ResumeLibraryUiState,
@@ -77,29 +99,124 @@ fun AssistantDashboardScreen(
     val scope = rememberCoroutineScope()
     var viewingResumeId by remember { mutableStateOf<String?>(null) }
     var importError by remember { mutableStateOf<String?>(null) }
+    var isDragOver by remember { mutableStateOf(false) }
     val viewingResume = resumeState.resumes.firstOrNull { it.id == viewingResumeId }
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) {
-            scope.launch {
-                try {
-                    val document = withContext(Dispatchers.IO) { context.readDocument(uri) }
-                    importError = null
-                    onResumeEvent(
-                        ResumeLibraryUiEvent.Import(
-                            displayName = document.fileName.substringBeforeLast('.'),
-                            fileName = document.fileName,
-                            mimeType = document.mimeType,
-                            content = document.content,
-                        ),
-                    )
-                } catch (_: Throwable) {
-                    importError = strings.get(AppStringId.ERROR_GENERIC)
+    val importEnabled = resumeState.importingFileName == null
+
+    fun submitImport(document: ImportedDocument) {
+        importError = null
+        onResumeEvent(
+            ResumeLibraryUiEvent.Import(
+                displayName = document.fileName.substringBeforeLast('.').ifBlank { "resume" },
+                fileName = document.fileName,
+                mimeType = document.mimeType,
+                content = document.content,
+            ),
+        )
+    }
+
+    fun importUri(uri: Uri) {
+        if (!importEnabled) return
+        scope.launch {
+            try {
+                val document = withContext(Dispatchers.IO) { context.readDocument(uri) }
+                if (!document.isSupportedResume()) {
+                    importError = strings.get(AppStringId.IMPORT_RESUME_UNSUPPORTED)
+                    return@launch
+                }
+                submitImport(document)
+            } catch (_: Throwable) {
+                importError = strings.get(AppStringId.ERROR_GENERIC)
+            }
+        }
+    }
+
+    fun importUris(uris: List<Uri>) {
+        val unique = uris.distinct()
+        if (unique.isEmpty()) {
+            importError = strings.get(AppStringId.IMPORT_RESUME_UNSUPPORTED)
+            return
+        }
+        unique.forEach(::importUri)
+    }
+
+    fun pasteFromClipboard() {
+        if (!importEnabled) return
+        scope.launch {
+            val result = withContext(Dispatchers.IO) { context.readClipboardResume() }
+            when (result) {
+                is ClipboardResumeResult.Documents -> result.documents.forEach(::submitImport)
+                ClipboardResumeResult.Unsupported -> {
+                    importError = strings.get(AppStringId.IMPORT_RESUME_UNSUPPORTED)
+                }
+                ClipboardResumeResult.Empty -> {
+                    importError = strings.get(AppStringId.IMPORT_RESUME_CLIPBOARD_EMPTY)
                 }
             }
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) importUri(uri)
+    }
+
+    val importEnabledState = rememberUpdatedState(importEnabled)
+    val onUrisDropped = rememberUpdatedState<(List<Uri>) -> Unit> { uris -> importUris(uris) }
+    val onUnsupportedDrop = rememberUpdatedState {
+        importError = strings.get(AppStringId.IMPORT_RESUME_UNSUPPORTED)
+    }
+
+    val dropTarget = remember {
+        object : DragAndDropTarget {
+            override fun onStarted(event: DragAndDropEvent) {
+                if (importEnabledState.value) isDragOver = true
+            }
+
+            override fun onEnded(event: DragAndDropEvent) {
+                isDragOver = false
+            }
+
+            override fun onDrop(event: DragAndDropEvent): Boolean {
+                isDragOver = false
+                if (!importEnabledState.value) return false
+                val uris = event.toAndroidDragEvent().clipData.resumeUris()
+                return if (uris.isNotEmpty()) {
+                    onUrisDropped.value(uris)
+                    true
+                } else {
+                    onUnsupportedDrop.value()
+                    false
+                }
+            }
+        }
+    }
+
+    val receiveContentListener = remember {
+        ReceiveContentListener { transferableContent ->
+            if (!importEnabledState.value) return@ReceiveContentListener transferableContent
+            val uris = transferableContent.clipEntry?.clipData?.resumeUris().orEmpty()
+            if (uris.isEmpty()) return@ReceiveContentListener transferableContent
+            onUrisDropped.value(uris)
+            null
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .onPreviewKeyEvent { keyEvent ->
+                if (
+                    keyEvent.type == KeyEventType.KeyDown &&
+                    keyEvent.key == Key.V &&
+                    (keyEvent.isCtrlPressed || keyEvent.isMetaPressed)
+                ) {
+                    pasteFromClipboard()
+                    true
+                } else {
+                    false
+                }
+            },
+    ) {
         LazyColumn(
             modifier = Modifier.padding(AppDesign.spacing.lg),
             verticalArrangement = Arrangement.spacedBy(AppDesign.spacing.md),
@@ -111,8 +228,10 @@ fun AssistantDashboardScreen(
                 ) {
                     Text(strings.get(AppStringId.RESUME_LIBRARY_TITLE), style = AppDesign.typography.pageTitle)
                     Button(
-                        enabled = resumeState.importingFileName == null,
-                        onClick = { picker.launch(arrayOf("application/pdf", "image/jpeg", "image/png")) },
+                        enabled = importEnabled,
+                        onClick = {
+                            picker.launch(arrayOf("application/pdf", "image/jpeg", "image/png"))
+                        },
                     ) {
                         if (resumeState.importingFileName != null) {
                             CircularProgressIndicator(
@@ -125,6 +244,26 @@ fun AssistantDashboardScreen(
                         Text(strings.get(AppStringId.IMPORT_RESUME))
                     }
                 }
+            }
+            item {
+                ResumeImportDropZone(
+                    enabled = importEnabled,
+                    isDragOver = isDragOver,
+                    hint = strings.get(
+                        if (isDragOver) {
+                            AppStringId.IMPORT_RESUME_DROP_ACTIVE
+                        } else {
+                            AppStringId.IMPORT_RESUME_HINT
+                        },
+                    ),
+                    pasteLabel = strings.get(AppStringId.IMPORT_RESUME_PASTE),
+                    onClick = {
+                        picker.launch(arrayOf("application/pdf", "image/jpeg", "image/png"))
+                    },
+                    onPasteClick = ::pasteFromClipboard,
+                    dropTarget = dropTarget,
+                    receiveContentListener = receiveContentListener,
+                )
             }
             resumeState.errorMessage?.let { message ->
                 item {
@@ -186,7 +325,73 @@ fun AssistantDashboardScreen(
                     resume = resume,
                     strings = strings,
                     onNavigateBack = { viewingResumeId = null },
+                    onSaveOcrText = { text ->
+                        onResumeEvent(
+                            ResumeLibraryUiEvent.UpdateOcrText(
+                                resumeId = resume.id,
+                                ocrText = text,
+                            ),
+                        )
+                    },
                 )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun ResumeImportDropZone(
+    enabled: Boolean,
+    isDragOver: Boolean,
+    hint: String,
+    pasteLabel: String,
+    onClick: () -> Unit,
+    onPasteClick: () -> Unit,
+    dropTarget: DragAndDropTarget,
+    receiveContentListener: ReceiveContentListener,
+) {
+    val borderColor = when {
+        isDragOver -> MaterialTheme.colorScheme.primary
+        else -> AppDesign.colors.border
+    }
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(BorderStroke(1.dp, borderColor), shape = MaterialTheme.shapes.medium)
+            .dragAndDropTarget(
+                shouldStartDragAndDrop = { event ->
+                    enabled && event.toAndroidDragEvent().clipDescription?.hasResumeMime() == true
+                },
+                target = dropTarget,
+            )
+            .contentReceiver(receiveContentListener)
+            .clickable(enabled = enabled, onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isDragOver) {
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+            } else {
+                AppDesign.colors.surfaceMuted
+            },
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(AppDesign.spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(AppDesign.spacing.sm),
+        ) {
+            Text(
+                text = hint,
+                style = AppDesign.typography.body,
+                color = AppDesign.colors.textSecondary,
+            )
+            TextButton(
+                enabled = enabled,
+                onClick = onPasteClick,
+            ) {
+                Text(pasteLabel)
             }
         }
     }
@@ -277,14 +482,49 @@ private fun ResumeContentScreen(
     resume: Resume,
     strings: StringsProvider,
     onNavigateBack: () -> Unit,
+    onSaveOcrText: (String) -> Unit,
 ) {
     val context = LocalContext.current
     val fileStore = remember { org.koin.core.context.GlobalContext.get().get<com.example.interviewassistant.core.file.AppFileStore>() }
-    val content = resume.ocrText.orEmpty()
-    var renderHtml by remember { mutableStateOf(content.looksLikeHtml()) }
+    val privacyRedactor = remember { org.koin.core.context.GlobalContext.get().get<PrivacyRedactor>() }
+    val savedContent = resume.ocrText.orEmpty()
+    val originalContent = resume.ocrOriginalText.orEmpty().ifBlank { savedContent }
+    var draftText by remember(resume.id, savedContent) { mutableStateOf(savedContent) }
+    var isEditing by remember(resume.id) { mutableStateOf(false) }
+    var showOriginal by remember(resume.id) { mutableStateOf(false) }
+    var renderHtml by remember(resume.id) { mutableStateOf(savedContent.looksLikeHtml()) }
+    var redactPreview by remember(resume.id) { mutableStateOf(false) }
     var copied by remember { mutableStateOf(false) }
     var assetBaseUri by remember { mutableStateOf<String?>(null) }
-    BackHandler { onNavigateBack() }
+    val isDirty = draftText != savedContent
+    val canCompareOriginal = originalContent.isNotBlank() && originalContent != savedContent
+    val baseContent = when {
+        isEditing -> draftText
+        showOriginal -> originalContent
+        else -> draftText
+    }
+    // 脱敏预览仅影响展示与复制；编辑态始终操作可编辑文本
+    val displayContent = remember(baseContent, redactPreview, isEditing) {
+        if (!isEditing && redactPreview) privacyRedactor.redact(baseContent) else baseContent
+    }
+
+    fun exitEditing(discard: Boolean) {
+        if (discard) {
+            draftText = savedContent
+        }
+        isEditing = false
+        redactPreview = false
+    }
+
+    fun handleBack() {
+        if (isEditing) {
+            exitEditing(discard = true)
+        } else {
+            onNavigateBack()
+        }
+    }
+
+    BackHandler { handleBack() }
     LaunchedEffect(resume.id) {
         assetBaseUri = runCatching { fileStore.ocrAssetBaseUri(resume.id) }.getOrNull()
     }
@@ -294,6 +534,11 @@ private fun ResumeContentScreen(
             copied = false
         }
     }
+    LaunchedEffect(savedContent, isEditing) {
+        if (!isEditing) {
+            draftText = savedContent
+        }
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -301,29 +546,96 @@ private fun ResumeContentScreen(
             TopAppBar(
                 title = { Text(strings.get(AppStringId.RESUME_CONTENT_TITLE)) },
                 navigationIcon = {
-                    TextButton(onClick = onNavigateBack) {
+                    TextButton(onClick = ::handleBack) {
                         Text(strings.get(AppStringId.COMMON_BACK))
                     }
                 },
                 actions = {
-                    TextButton(onClick = { renderHtml = !renderHtml }) {
-                        Text(
-                            strings.get(
-                                if (renderHtml) AppStringId.RESUME_SHOW_SOURCE else AppStringId.RESUME_RENDER_HTML,
-                            ),
-                        )
-                    }
-                    TextButton(
-                        onClick = {
-                            copyTextToClipboard(context, content)
-                            copied = true
-                        },
-                    ) {
-                        Text(
-                            strings.get(
-                                if (copied) AppStringId.RESUME_COPIED else AppStringId.RESUME_COPY,
-                            ),
-                        )
+                    if (isEditing) {
+                        if (originalContent.isNotBlank()) {
+                            TextButton(
+                                onClick = { draftText = originalContent },
+                                enabled = draftText != originalContent,
+                            ) {
+                                Text(strings.get(AppStringId.RESUME_RESTORE_ORIGINAL))
+                            }
+                        }
+                        TextButton(onClick = { exitEditing(discard = true) }) {
+                            Text(strings.get(AppStringId.COMMON_CANCEL))
+                        }
+                        TextButton(
+                            enabled = isDirty,
+                            onClick = {
+                                onSaveOcrText(draftText)
+                                isEditing = false
+                                showOriginal = false
+                                redactPreview = false
+                            },
+                        ) {
+                            Text(strings.get(AppStringId.COMMON_SAVE))
+                        }
+                    } else {
+                        TextButton(
+                            onClick = {
+                                isEditing = true
+                                showOriginal = false
+                                renderHtml = false
+                                redactPreview = false
+                                draftText = savedContent
+                            },
+                        ) {
+                            Text(strings.get(AppStringId.RESUME_EDIT))
+                        }
+                        if (canCompareOriginal || originalContent.isNotBlank()) {
+                            TextButton(
+                                onClick = { showOriginal = !showOriginal },
+                                enabled = originalContent.isNotBlank(),
+                            ) {
+                                Text(
+                                    strings.get(
+                                        if (showOriginal) {
+                                            AppStringId.RESUME_VIEW_CURRENT
+                                        } else {
+                                            AppStringId.RESUME_VIEW_ORIGINAL
+                                        },
+                                    ),
+                                )
+                            }
+                        }
+                        TextButton(onClick = { redactPreview = !redactPreview }) {
+                            Text(
+                                strings.get(
+                                    if (redactPreview) {
+                                        AppStringId.RESUME_REDACT_ORIGINAL
+                                    } else {
+                                        AppStringId.RESUME_REDACT_PREVIEW
+                                    },
+                                ),
+                            )
+                        }
+                        TextButton(onClick = { renderHtml = !renderHtml }) {
+                            Text(
+                                strings.get(
+                                    if (renderHtml) {
+                                        AppStringId.RESUME_SHOW_SOURCE
+                                    } else {
+                                        AppStringId.RESUME_RENDER_HTML
+                                    },
+                                ),
+                            )
+                        }
+                        TextButton(
+                            onClick = {
+                                copyTextToClipboard(context, displayContent)
+                                copied = true
+                            },
+                        ) {
+                            Text(
+                                strings.get(
+                                    if (copied) AppStringId.RESUME_COPIED else AppStringId.RESUME_COPY,
+                                ),
+                            )
+                        }
                     }
                 },
             )
@@ -337,20 +649,40 @@ private fun ResumeContentScreen(
             verticalArrangement = Arrangement.spacedBy(AppDesign.spacing.md),
         ) {
             Text(resume.displayName, style = AppDesign.typography.sectionTitle)
-            if (renderHtml) {
-                AndroidHtmlPreview(
-                    html = OcrDisplayHtml.document(content, assetBaseUri),
-                    baseUri = assetBaseUri,
-                    modifier = Modifier.fillMaxSize().weight(1f),
+            if (!isEditing && showOriginal) {
+                Text(
+                    text = strings.get(AppStringId.RESUME_VIEW_ORIGINAL),
+                    style = AppDesign.typography.caption,
+                    color = AppDesign.colors.textSecondary,
                 )
-            } else {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState()),
-                ) {
-                    Text(text = content, style = AppDesign.typography.body)
+            }
+            when {
+                isEditing -> {
+                    androidx.compose.material3.OutlinedTextField(
+                        value = draftText,
+                        onValueChange = { draftText = it },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .weight(1f),
+                        textStyle = AppDesign.typography.body,
+                    )
+                }
+                renderHtml -> {
+                    AndroidHtmlPreview(
+                        html = OcrDisplayHtml.document(displayContent, assetBaseUri),
+                        baseUri = assetBaseUri,
+                        modifier = Modifier.fillMaxSize().weight(1f),
+                    )
+                }
+                else -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState()),
+                    ) {
+                        Text(text = displayContent, style = AppDesign.typography.body)
+                    }
                 }
             }
         }
@@ -423,6 +755,12 @@ private data class ImportedDocument(
     val content: ByteArray,
 )
 
+private sealed interface ClipboardResumeResult {
+    data class Documents(val documents: List<ImportedDocument>) : ClipboardResumeResult
+    data object Unsupported : ClipboardResumeResult
+    data object Empty : ClipboardResumeResult
+}
+
 private fun android.content.Context.readDocument(uri: Uri): ImportedDocument {
     val fileName = contentResolver.query(
         uri,
@@ -433,14 +771,68 @@ private fun android.content.Context.readDocument(uri: Uri): ImportedDocument {
     )?.use { cursor ->
         if (cursor.moveToFirst()) cursor.getString(0) else null
     } ?: "resume"
-    val mimeType = contentResolver.getType(uri) ?: when (fileName.substringAfterLast('.').lowercase()) {
-        "pdf" -> "application/pdf"
-        "png" -> "image/png"
-        else -> "image/jpeg"
-    }
+    val mimeType = contentResolver.getType(uri) ?: mimeTypeForResumeFileName(fileName)
     val content = requireNotNull(contentResolver.openInputStream(uri)) { "Unable to open selected resume" }
         .use { it.readBytes() }
     return ImportedDocument(fileName, mimeType, content)
+}
+
+private fun android.content.Context.readClipboardResume(): ClipboardResumeResult {
+    val clipboard = getSystemService(ClipboardManager::class.java) ?: return ClipboardResumeResult.Empty
+    val clip = clipboard.primaryClip ?: return ClipboardResumeResult.Empty
+    if (clip.itemCount <= 0) return ClipboardResumeResult.Empty
+
+    val documents = mutableListOf<ImportedDocument>()
+    var sawUnsupported = false
+    for (index in 0 until clip.itemCount) {
+        val item = clip.getItemAt(index)
+        val uri = item.uri
+        if (uri != null) {
+            runCatching { readDocument(uri) }
+                .onSuccess { document ->
+                    if (document.isSupportedResume()) {
+                        documents += document
+                    } else {
+                        sawUnsupported = true
+                    }
+                }
+        }
+    }
+    return when {
+        documents.isNotEmpty() -> ClipboardResumeResult.Documents(documents)
+        sawUnsupported -> ClipboardResumeResult.Unsupported
+        else -> ClipboardResumeResult.Empty
+    }
+}
+
+private fun ClipData.resumeUris(): List<Uri> {
+    return buildList {
+        for (index in 0 until itemCount) {
+            getItemAt(index).uri?.let(::add)
+        }
+    }
+}
+
+private fun android.content.ClipDescription.hasResumeMime(): Boolean {
+    return hasMimeType("application/pdf") ||
+        hasMimeType("image/*") ||
+        hasMimeType("image/jpeg") ||
+        hasMimeType("image/png") ||
+        hasMimeType("*/*")
+}
+
+private fun ImportedDocument.isSupportedResume(): Boolean {
+    val extension = fileName.substringAfterLast('.', missingDelimiterValue = "").lowercase()
+    return mimeType in SUPPORTED_RESUME_MIME_TYPES || extension in SUPPORTED_RESUME_EXTENSIONS
+}
+
+private fun mimeTypeForResumeFileName(fileName: String): String {
+    return when (fileName.substringAfterLast('.', missingDelimiterValue = "").lowercase()) {
+        "pdf" -> "application/pdf"
+        "png" -> "image/png"
+        "jpg", "jpeg" -> "image/jpeg"
+        else -> "application/octet-stream"
+    }
 }
 
 private fun Resume.isProcessing(processingResumeIds: Set<String>): Boolean {
@@ -456,3 +848,6 @@ private fun OcrStatus.stringId(): AppStringId = when (this) {
 }
 
 private val PROCESSING_STATUSES = setOf(OcrStatus.QUEUED, OcrStatus.PENDING, OcrStatus.RUNNING)
+private val SUPPORTED_RESUME_EXTENSIONS = setOf("pdf", "jpg", "jpeg", "png")
+private val SUPPORTED_RESUME_MIME_TYPES = setOf("application/pdf", "image/jpeg", "image/png", "image/jpg")
+

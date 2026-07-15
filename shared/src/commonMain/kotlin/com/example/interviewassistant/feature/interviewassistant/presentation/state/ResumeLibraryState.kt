@@ -27,6 +27,7 @@ sealed interface ResumeLibraryUiEvent {
     ) : ResumeLibraryUiEvent
 
     data class RetryOcr(val resumeId: String) : ResumeLibraryUiEvent
+    data class UpdateOcrText(val resumeId: String, val ocrText: String) : ResumeLibraryUiEvent
     data class Delete(val resumeId: String) : ResumeLibraryUiEvent
     data object ClearError : ResumeLibraryUiEvent
 }
@@ -36,4 +37,5 @@ sealed interface ResumeLibraryUiEvent {
  */
 sealed interface ResumeLibraryUiEffect {
     data class ImportCompleted(val resumeId: String) : ResumeLibraryUiEffect
+    data class OcrTextSaved(val resumeId: String) : ResumeLibraryUiEffect
 }

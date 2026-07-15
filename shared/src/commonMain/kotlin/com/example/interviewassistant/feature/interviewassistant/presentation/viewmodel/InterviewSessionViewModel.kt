@@ -301,9 +301,14 @@ class InterviewSessionViewModel(
                     )
                 }
                 try {
+                    // 生成前重新读取简历，确保手动编辑后的 OCR 文本立即生效
+                    val latestResume = resumes.get(session.resumeId) ?: resume
+                    if (isBoundTo(session.id) && latestResume.id == resume.id) {
+                        mutableUiState.value = mutableUiState.value.copy(resume = latestResume)
+                    }
                     answerGenerator.generate(
                         InterviewAnswerContext(
-                            resumeText = resume.ocrText.orEmpty(),
+                            resumeText = latestResume.ocrText.orEmpty(),
                             question = question,
                             recentTranscript = state.transcripts.joinToString(separator = "\n") { it.text },
                             recentAnswers = state.answers.takeLast(3).map(AssistantAnswer::content),

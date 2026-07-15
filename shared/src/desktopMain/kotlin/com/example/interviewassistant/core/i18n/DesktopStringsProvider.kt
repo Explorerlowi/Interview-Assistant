@@ -24,9 +24,23 @@ class DesktopStringsProvider : StringsProvider {
             AppStringId.RECENT_SESSIONS_TITLE -> Text("Recent sessions", "最近会话")
             AppStringId.IMPORT_RESUME -> Text("Import resume", "导入简历")
             AppStringId.IMPORT_RESUME_COMPLETED -> Text("Resume imported", "简历已导入")
+            AppStringId.IMPORT_RESUME_HINT -> Text(
+                "Click to choose, or drag / paste a PDF, JPG, or PNG",
+                "点击选择，或拖入 / 粘贴 PDF、JPG、PNG",
+            )
+            AppStringId.IMPORT_RESUME_DROP_ACTIVE -> Text("Release to import", "松手即可导入")
+            AppStringId.IMPORT_RESUME_PASTE -> Text("Paste", "粘贴")
+            AppStringId.IMPORT_RESUME_UNSUPPORTED -> Text(
+                "Only PDF, JPG, and PNG resumes are supported",
+                "仅支持 PDF、JPG、PNG 简历",
+            )
+            AppStringId.IMPORT_RESUME_CLIPBOARD_EMPTY -> Text(
+                "Clipboard has no supported resume file or image",
+                "剪贴板中没有可用的简历文件或图片",
+            )
             AppStringId.RESUME_EMPTY -> Text(
-                "Import a PDF, JPG, or PNG resume to begin.",
-                "请导入 PDF、JPG 或 PNG 简历开始使用。",
+                "Import a PDF, JPG, or PNG resume to begin. You can also drag or paste one here.",
+                "请导入 PDF、JPG 或 PNG 简历开始使用，也可拖入或粘贴。",
             )
             AppStringId.SESSION_EMPTY -> Text("No interview sessions yet.", "暂无面试会话。")
             AppStringId.SELECT_RESUME -> Text("Select resume", "选择简历")
@@ -43,6 +57,13 @@ class DesktopStringsProvider : StringsProvider {
             AppStringId.RESUME_SHOW_SOURCE -> Text("Source", "查看源码")
             AppStringId.RESUME_COPY -> Text("Copy", "复制")
             AppStringId.RESUME_COPIED -> Text("Copied", "已复制")
+            AppStringId.RESUME_EDIT -> Text("Edit", "编辑")
+            AppStringId.RESUME_SAVED -> Text("Resume text saved", "简历文本已保存")
+            AppStringId.RESUME_VIEW_ORIGINAL -> Text("Original OCR", "OCR 原文")
+            AppStringId.RESUME_VIEW_CURRENT -> Text("Current text", "当前文本")
+            AppStringId.RESUME_RESTORE_ORIGINAL -> Text("Restore original", "恢复原文")
+            AppStringId.RESUME_REDACT_PREVIEW -> Text("Privacy preview", "脱敏预览")
+            AppStringId.RESUME_REDACT_ORIGINAL -> Text("Show original", "显示原文")
             AppStringId.OCR_PROCESSING_HINT -> Text("Parsing resume…", "正在解析简历…")
             AppStringId.WORKSPACE_TRANSCRIPT -> Text("Live transcript", "实时转写")
             AppStringId.WORKSPACE_ANSWER -> Text("Answer suggestion", "回答建议")
@@ -72,6 +93,10 @@ class DesktopStringsProvider : StringsProvider {
             AppStringId.SETTINGS_APP_ID -> Text("App ID", "App ID")
             AppStringId.SETTINGS_SYSTEM_PROMPT -> Text("System prompt", "系统提示词")
             AppStringId.SETTINGS_THINKING -> Text("Thinking mode", "思考模式")
+            AppStringId.SETTINGS_REDACT_PII -> Text(
+                "Hide personal info sent to the model",
+                "发送给模型前隐藏个人信息",
+            )
             AppStringId.SETTINGS_CONFIGURED -> Text("Configured", "已配置")
             AppStringId.SETTINGS_NOT_CONFIGURED -> Text("Not configured", "未配置")
             AppStringId.SETTINGS_SHOW_SECRET -> Text("Show secret", "显示密钥")

@@ -96,6 +96,9 @@ fun DesktopMainShell(
             if (effect is ResumeLibraryUiEffect.ImportCompleted) {
                 snackbarHostState.showSnackbar(strings.get(AppStringId.IMPORT_RESUME_COMPLETED))
             }
+            if (effect is ResumeLibraryUiEffect.OcrTextSaved) {
+                snackbarHostState.showSnackbar(strings.get(AppStringId.RESUME_SAVED))
+            }
         }
     }
     DisposableEffect(Unit) {

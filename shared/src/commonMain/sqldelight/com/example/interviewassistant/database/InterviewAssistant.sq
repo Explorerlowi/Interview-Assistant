@@ -6,6 +6,7 @@ CREATE TABLE ResumeEntity (
     mime_type TEXT NOT NULL,
     ocr_status TEXT NOT NULL,
     ocr_text TEXT,
+    ocr_original_text TEXT,
     ocr_error TEXT,
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL
@@ -67,10 +68,11 @@ INSERT INTO ResumeEntity(
     mime_type,
     ocr_status,
     ocr_text,
+    ocr_original_text,
     ocr_error,
     created_at,
     updated_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateResume:
 UPDATE ResumeEntity
@@ -80,6 +82,7 @@ SET display_name = ?,
     mime_type = ?,
     ocr_status = ?,
     ocr_text = ?,
+    ocr_original_text = ?,
     ocr_error = ?,
     created_at = ?,
     updated_at = ?

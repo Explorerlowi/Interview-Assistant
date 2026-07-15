@@ -25,6 +25,7 @@ import com.example.interviewassistant.feature.interviewassistant.presentation.vi
 import com.example.interviewassistant.feature.interviewassistant.presentation.viewmodel.SessionHistoryViewModel
 import com.example.interviewassistant.feature.interviewassistant.domain.usecase.InterviewAnswerGenerator
 import com.example.interviewassistant.feature.interviewassistant.domain.usecase.InterviewPromptBuilder
+import com.example.interviewassistant.feature.interviewassistant.domain.usecase.PrivacyRedactor
 import com.example.interviewassistant.feature.interviewassistant.domain.usecase.ProviderConnectionTester
 import com.example.interviewassistant.feature.interviewassistant.domain.usecase.ResumeOcrCoordinator
 import com.example.interviewassistant.feature.login.data.local.InMemoryLoginLocalDataSource
@@ -63,6 +64,7 @@ fun appModule() = module {
     }
     single<SpeechRecognizer> { ContinuousSpeechRecognizer(get(), get(), get()) }
     single { InterviewPromptBuilder() }
+    single { PrivacyRedactor() }
     factory {
         ProviderConnectionTester(
             client = get<ApiClient>().httpClient,
@@ -71,7 +73,7 @@ fun appModule() = module {
             llmGateway = get(),
         )
     }
-    factory { InterviewAnswerGenerator(get(), get(), get()) }
+    factory { InterviewAnswerGenerator(get(), get(), get(), get()) }
     factory { ResumeOcrCoordinator(get(), get(), get(), get()) }
     factory { ProviderSettingsViewModel(get(), get(), get()) }
     factory { ResumeLibraryViewModel(get(), get(), get(), get()) }

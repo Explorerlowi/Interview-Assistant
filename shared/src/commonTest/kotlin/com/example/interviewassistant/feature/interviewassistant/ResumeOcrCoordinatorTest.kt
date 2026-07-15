@@ -51,6 +51,7 @@ class ResumeOcrCoordinatorTest {
         val success = assertIs<AppResult.Success<Resume>>(result)
         assertEquals(OcrStatus.READY, success.data.ocrStatus)
         assertEquals("parsed resume", success.data.ocrText)
+        assertEquals("parsed resume", success.data.ocrOriginalText)
         assertEquals(OcrStatus.READY, resumes.jobs.values.single().state)
         assertEquals(3, gateway.queryCount)
     }

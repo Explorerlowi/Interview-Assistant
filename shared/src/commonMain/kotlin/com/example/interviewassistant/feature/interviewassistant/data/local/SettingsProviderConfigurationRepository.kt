@@ -42,6 +42,7 @@ class SettingsProviderConfigurationRepository(
         settings.putString(KEY_LLM_SYSTEM_PROMPT, normalized.llm.systemPrompt)
         settings.putBoolean(KEY_LLM_THINKING, normalized.llm.thinkingEnabled)
         settings.putInt(KEY_LLM_CONTEXT, normalized.llm.maxContextCharacters)
+        settings.putBoolean(KEY_LLM_REDACT_PII, normalized.llm.redactPersonalInfo)
         settings.putString(KEY_TRIGGER_MODE, normalized.answerTriggerMode.name)
         updateSecret(SecretKeys.PADDLE_TOKEN, secrets.paddleToken)
         updateSecret(SecretKeys.XUNFEI_APP_ID, secrets.xunfeiAppId)
@@ -116,6 +117,7 @@ class SettingsProviderConfigurationRepository(
                 ),
                 thinkingEnabled = settings.getBoolean(KEY_LLM_THINKING, false),
                 maxContextCharacters = settings.getInt(KEY_LLM_CONTEXT, 24_000),
+                redactPersonalInfo = settings.getBoolean(KEY_LLM_REDACT_PII, true),
             ),
             answerTriggerMode = runCatching {
                 AnswerTriggerMode.valueOf(settings.getString(KEY_TRIGGER_MODE, AnswerTriggerMode.MANUAL.name))
@@ -168,6 +170,7 @@ class SettingsProviderConfigurationRepository(
         const val KEY_LLM_SYSTEM_PROMPT = "provider.llm.systemPrompt"
         const val KEY_LLM_THINKING = "provider.llm.thinking"
         const val KEY_LLM_CONTEXT = "provider.llm.context"
+        const val KEY_LLM_REDACT_PII = "provider.llm.redactPii"
         const val KEY_TRIGGER_MODE = "assistant.triggerMode"
     }
 }

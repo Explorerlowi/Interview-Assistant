@@ -1,0 +1,4 @@
+ALTER TABLE ResumeEntity ADD COLUMN ocr_original_text TEXT;
+UPDATE ResumeEntity
+SET ocr_original_text = ocr_text
+WHERE ocr_original_text IS NULL AND ocr_text IS NOT NULL;

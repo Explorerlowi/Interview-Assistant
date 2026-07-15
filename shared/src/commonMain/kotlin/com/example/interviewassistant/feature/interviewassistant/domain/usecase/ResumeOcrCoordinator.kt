@@ -203,6 +203,11 @@ class ResumeOcrCoordinator(
         val updated = original.copy(
             ocrStatus = status,
             ocrText = text,
+            // OCR 首次/重新完成时同步锁定原文；状态推进时保留已有原文
+            ocrOriginalText = when {
+                status == OcrStatus.READY && text != null -> text
+                else -> original.ocrOriginalText
+            },
             ocrError = error,
             updatedAt = TimeProvider.currentTimeMillis(),
         )

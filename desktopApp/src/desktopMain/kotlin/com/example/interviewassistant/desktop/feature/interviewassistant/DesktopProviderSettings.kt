@@ -124,6 +124,15 @@ fun DesktopProviderSettings(
                         },
                         label = strings.get(AppStringId.SETTINGS_THINKING),
                     )
+                    AppSwitchRow(
+                        checked = configuration.llm.redactPersonalInfo,
+                        onCheckedChange = {
+                            configuration = configuration.copy(
+                                llm = configuration.llm.copy(redactPersonalInfo = it),
+                            )
+                        },
+                        label = strings.get(AppStringId.SETTINGS_REDACT_PII),
+                    )
                 }
             }
         }

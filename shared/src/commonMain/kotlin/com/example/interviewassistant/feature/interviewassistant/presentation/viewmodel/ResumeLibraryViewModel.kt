@@ -2,13 +2,15 @@ package com.example.interviewassistant.feature.interviewassistant.presentation.v
 
 import com.example.interviewassistant.core.error.AppResult
 import com.example.interviewassistant.core.util.CoroutineDispatcherProvider
-import com.example.interviewassistant.feature.interviewassistant.domain.repository.ResumeRepository
+import com.example.interviewassistant.core.util.TimeProvider
 import com.example.interviewassistant.feature.interviewassistant.domain.repository.InterviewSessionRepository
+import com.example.interviewassistant.feature.interviewassistant.domain.repository.ResumeRepository
 import com.example.interviewassistant.feature.interviewassistant.domain.usecase.ResumeOcrCoordinator
 import com.example.interviewassistant.feature.interviewassistant.presentation.state.ResumeLibraryUiEffect
 import com.example.interviewassistant.feature.interviewassistant.presentation.state.ResumeLibraryUiEvent
 import com.example.interviewassistant.feature.interviewassistant.presentation.state.ResumeLibraryUiState
 import com.example.interviewassistant.presentation.viewmodel.BaseViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -18,7 +20,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /**
- * Coordinates resume import, OCR progress, retry and deletion.
+ * Coordinates resume import, OCR progress, retry, text editing and deletion.
  */
 class ResumeLibraryViewModel(
     private val repository: ResumeRepository,
@@ -52,6 +54,7 @@ class ResumeLibraryViewModel(
             ResumeLibraryUiEvent.Refresh -> refreshAndRecover()
             is ResumeLibraryUiEvent.Import -> import(event)
             is ResumeLibraryUiEvent.RetryOcr -> retry(event.resumeId)
+            is ResumeLibraryUiEvent.UpdateOcrText -> updateOcrText(event)
             is ResumeLibraryUiEvent.Delete -> delete(event.resumeId)
             ResumeLibraryUiEvent.ClearError -> {
                 mutableUiState.value = mutableUiState.value.copy(errorMessage = null)
@@ -107,6 +110,39 @@ class ResumeLibraryViewModel(
                 }
             }
             markProcessing(resumeId, active = false)
+        }
+    }
+
+    /**
+     * Persists manually edited OCR text while keeping the current OCR status.
+     */
+    private fun updateOcrText(event: ResumeLibraryUiEvent.UpdateOcrText) {
+        viewModelScope.launch(dispatcherProvider.io) {
+            mutableUiState.value = mutableUiState.value.copy(errorMessage = null)
+            try {
+                val resume = repository.get(event.resumeId)
+                if (resume == null) {
+                    mutableUiState.value = mutableUiState.value.copy(
+                        errorMessage = "Resume not found",
+                    )
+                    return@launch
+                }
+                repository.save(
+                    resume.copy(
+                        ocrText = event.ocrText,
+                        // 首次保存编辑时，若尚无原文则把当前库里的文本固化为原文
+                        ocrOriginalText = resume.ocrOriginalText ?: resume.ocrText,
+                        updatedAt = TimeProvider.currentTimeMillis(),
+                    ),
+                )
+                mutableEffect.emit(ResumeLibraryUiEffect.OcrTextSaved(event.resumeId))
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Throwable) {
+                mutableUiState.value = mutableUiState.value.copy(
+                    errorMessage = error.message ?: error::class.simpleName,
+                )
+            }
         }
     }
 
