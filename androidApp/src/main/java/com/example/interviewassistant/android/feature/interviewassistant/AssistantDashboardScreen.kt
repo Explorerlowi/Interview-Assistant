@@ -8,6 +8,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -23,6 +24,7 @@ import androidx.compose.foundation.draganddrop.dragAndDropTarget
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,10 +38,16 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -64,7 +72,10 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.interviewassistant.android.R
 import com.example.interviewassistant.core.design.theme.AppDesign
 import com.example.interviewassistant.core.i18n.AppStringId
 import com.example.interviewassistant.core.i18n.StringsProvider
@@ -218,15 +229,32 @@ fun AssistantDashboardScreen(
             },
     ) {
         LazyColumn(
-            modifier = Modifier.padding(AppDesign.spacing.lg),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(
+                start = AppDesign.spacing.lg,
+                top = AppDesign.spacing.xl,
+                end = AppDesign.spacing.lg,
+                bottom = AppDesign.spacing.xxl,
+            ),
             verticalArrangement = Arrangement.spacedBy(AppDesign.spacing.md),
         ) {
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(strings.get(AppStringId.RESUME_LIBRARY_TITLE), style = AppDesign.typography.pageTitle)
+                    Column(verticalArrangement = Arrangement.spacedBy(AppDesign.spacing.xs)) {
+                        Text(
+                            strings.get(AppStringId.ASSISTANT_TITLE),
+                            style = AppDesign.typography.pageTitle,
+                        )
+                        Text(
+                            strings.get(AppStringId.RESUME_LIBRARY_TITLE),
+                            style = AppDesign.typography.body,
+                            color = AppDesign.colors.textSecondary,
+                        )
+                    }
                     Button(
                         enabled = importEnabled,
                         onClick = {
@@ -267,16 +295,26 @@ fun AssistantDashboardScreen(
             }
             resumeState.errorMessage?.let { message ->
                 item {
-                    Text(message, color = MaterialTheme.colorScheme.error)
+                    InlineErrorMessage(message)
                 }
             }
             importError?.let { message ->
                 item {
-                    Text(message, color = MaterialTheme.colorScheme.error)
+                    InlineErrorMessage(message)
+                }
+            }
+            if (resumeState.isLoading && resumeState.resumes.isEmpty()) {
+                item {
+                    LoadingState()
                 }
             }
             if (!resumeState.isLoading && resumeState.resumes.isEmpty()) {
-                item { Text(strings.get(AppStringId.RESUME_EMPTY)) }
+                item {
+                    EmptyState(
+                        message = strings.get(AppStringId.RESUME_EMPTY),
+                        iconRes = R.drawable.ic_description,
+                    )
+                }
             }
             items(resumeState.resumes, key = Resume::id) { resume ->
                 ResumeCard(
@@ -290,14 +328,22 @@ fun AssistantDashboardScreen(
                 )
             }
             item {
-                Text(
-                    text = strings.get(AppStringId.RECENT_SESSIONS_TITLE),
-                    style = AppDesign.typography.sectionTitle,
+                SectionHeader(
+                    title = strings.get(AppStringId.RECENT_SESSIONS_TITLE),
+                    count = historyState.sessions.size,
                     modifier = Modifier.padding(top = AppDesign.spacing.lg),
                 )
             }
+            if (historyState.isLoading && historyState.sessions.isEmpty()) {
+                item { LoadingState() }
+            }
             if (!historyState.isLoading && historyState.sessions.isEmpty()) {
-                item { Text(strings.get(AppStringId.SESSION_EMPTY)) }
+                item {
+                    EmptyState(
+                        message = strings.get(AppStringId.SESSION_EMPTY),
+                        iconRes = R.drawable.ic_assistant,
+                    )
+                }
             }
             items(historyState.sessions, key = InterviewSession::id) { session ->
                 SessionCard(
@@ -358,7 +404,7 @@ private fun ResumeImportDropZone(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .border(BorderStroke(1.dp, borderColor), shape = MaterialTheme.shapes.medium)
+            .border(BorderStroke(1.dp, borderColor), shape = MaterialTheme.shapes.large)
             .dragAndDropTarget(
                 shouldStartDragAndDrop = { event ->
                     enabled && event.toAndroidDragEvent().clipDescription?.hasResumeMime() == true
@@ -369,21 +415,34 @@ private fun ResumeImportDropZone(
             .clickable(enabled = enabled, onClick = onClick),
         colors = CardDefaults.cardColors(
             containerColor = if (isDragOver) {
-                MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
             } else {
-                AppDesign.colors.surfaceMuted
+                AppDesign.colors.brandSubtle.copy(alpha = 0.55f)
             },
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(AppDesign.spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(AppDesign.spacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(AppDesign.spacing.md),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
+            Surface(
+                shape = MaterialTheme.shapes.medium,
+                color = AppDesign.colors.surface.copy(alpha = 0.8f),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_description),
+                    contentDescription = null,
+                    modifier = Modifier.padding(AppDesign.spacing.md).size(24.dp),
+                    tint = AppDesign.colors.brand,
+                )
+            }
             Text(
                 text = hint,
+                modifier = Modifier.weight(1f),
                 style = AppDesign.typography.body,
                 color = AppDesign.colors.textSecondary,
             )
@@ -398,6 +457,92 @@ private fun ResumeImportDropZone(
 }
 
 @Composable
+private fun SectionHeader(
+    title: String,
+    count: Int,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(AppDesign.spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(text = title, style = AppDesign.typography.sectionTitle)
+        Surface(
+            shape = MaterialTheme.shapes.large,
+            color = AppDesign.colors.surfaceMuted,
+        ) {
+            Text(
+                text = count.toString(),
+                modifier = Modifier.padding(
+                    horizontal = AppDesign.spacing.sm,
+                    vertical = AppDesign.spacing.xs,
+                ),
+                style = AppDesign.typography.caption,
+                color = AppDesign.colors.textSecondary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LoadingState() {
+    Box(
+        modifier = Modifier.fillMaxWidth().padding(AppDesign.spacing.xl),
+        contentAlignment = Alignment.Center,
+    ) {
+        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+    }
+}
+
+@Composable
+private fun EmptyState(
+    message: String,
+    iconRes: Int,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        color = AppDesign.colors.surface,
+        border = BorderStroke(1.dp, AppDesign.colors.divider),
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(AppDesign.spacing.xl),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(AppDesign.spacing.md),
+        ) {
+            Icon(
+                painter = painterResource(iconRes),
+                contentDescription = null,
+                modifier = Modifier.size(32.dp),
+                tint = AppDesign.colors.textTertiary,
+            )
+            Text(
+                text = message,
+                style = AppDesign.typography.body,
+                color = AppDesign.colors.textSecondary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun InlineErrorMessage(message: String) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.errorContainer,
+    ) {
+        Text(
+            text = message,
+            modifier = Modifier.padding(AppDesign.spacing.md),
+            style = AppDesign.typography.body,
+            color = MaterialTheme.colorScheme.onErrorContainer,
+        )
+    }
+}
+
+@Composable
 private fun ResumeCard(
     resume: Resume,
     isProcessing: Boolean,
@@ -408,37 +553,52 @@ private fun ResumeCard(
     onDelete: () -> Unit,
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = AppDesign.colors.surfaceMuted),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        modifier = Modifier.fillMaxWidth().animateContentSize(),
+        colors = CardDefaults.cardColors(containerColor = AppDesign.colors.surface),
+        border = BorderStroke(1.dp, AppDesign.colors.divider),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(AppDesign.spacing.lg),
             verticalArrangement = Arrangement.spacedBy(AppDesign.spacing.md),
         ) {
-            Text(resume.displayName, style = AppDesign.typography.sectionTitle)
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(AppDesign.spacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(AppDesign.spacing.md),
             ) {
-                if (isProcessing) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(AppDesign.spacing.lg),
-                        strokeWidth = AppDesign.spacing.xxs,
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    color = AppDesign.colors.surfaceMuted,
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_description),
+                        contentDescription = null,
+                        modifier = Modifier.padding(AppDesign.spacing.sm).size(24.dp),
+                        tint = AppDesign.colors.brand,
                     )
                 }
                 Text(
-                    text = if (isProcessing) {
-                        strings.get(AppStringId.OCR_PROCESSING_HINT)
-                    } else {
-                        strings.get(resume.ocrStatus.stringId())
-                    },
-                    style = AppDesign.typography.caption,
-                    color = AppDesign.colors.textSecondary,
+                    text = resume.displayName,
+                    modifier = Modifier.weight(1f),
+                    style = AppDesign.typography.sectionTitle,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                OcrStatusPill(
+                    status = resume.ocrStatus,
+                    isProcessing = isProcessing,
+                    label = strings.get(
+                        if (isProcessing) AppStringId.OCR_PROCESSING_HINT else resume.ocrStatus.stringId(),
+                    ),
                 )
             }
             if (isProcessing) {
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = AppDesign.colors.brand,
+                    trackColor = AppDesign.colors.brandSubtle,
+                )
             }
             resume.ocrError?.takeIf { !isProcessing }?.let {
                 Text(it, color = MaterialTheme.colorScheme.error, style = AppDesign.typography.caption)
@@ -450,11 +610,16 @@ private fun ResumeCard(
                     style = AppDesign.typography.body,
                     color = AppDesign.colors.textSecondary,
                     maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(AppDesign.spacing.sm)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppDesign.spacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 if (resume.ocrStatus == OcrStatus.READY) {
-                    Button(onClick = onStart) {
+                    Button(modifier = Modifier.weight(1f), onClick = onStart) {
                         Text(strings.get(AppStringId.START_SESSION))
                     }
                     if (!ocrText.isNullOrBlank()) {
@@ -464,14 +629,68 @@ private fun ResumeCard(
                     }
                 }
                 if (resume.ocrStatus == OcrStatus.FAILED && !isProcessing) {
-                    TextButton(onClick = onRetry) {
+                    FilledTonalButton(modifier = Modifier.weight(1f), onClick = onRetry) {
                         Text(strings.get(AppStringId.COMMON_RETRY))
                     }
                 }
                 TextButton(onClick = onDelete, enabled = !isProcessing) {
-                    Text(strings.get(AppStringId.COMMON_DELETE))
+                    Text(
+                        strings.get(AppStringId.COMMON_DELETE),
+                        color = if (isProcessing) {
+                            AppDesign.colors.textTertiary
+                        } else {
+                            AppDesign.colors.danger
+                        },
+                    )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun OcrStatusPill(
+    status: OcrStatus,
+    isProcessing: Boolean,
+    label: String,
+) {
+    val containerColor = when {
+        isProcessing -> AppDesign.colors.brandSubtle
+        status == OcrStatus.READY -> AppDesign.colors.success.copy(alpha = 0.12f)
+        status == OcrStatus.FAILED -> AppDesign.colors.danger.copy(alpha = 0.1f)
+        else -> AppDesign.colors.warning.copy(alpha = 0.14f)
+    }
+    val contentColor = when {
+        isProcessing -> AppDesign.colors.brand
+        status == OcrStatus.READY -> AppDesign.colors.success
+        status == OcrStatus.FAILED -> AppDesign.colors.danger
+        else -> AppDesign.colors.warning
+    }
+    Surface(
+        shape = MaterialTheme.shapes.large,
+        color = containerColor,
+    ) {
+        Row(
+            modifier = Modifier.padding(
+                horizontal = AppDesign.spacing.sm,
+                vertical = AppDesign.spacing.xs,
+            ),
+            horizontalArrangement = Arrangement.spacedBy(AppDesign.spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (isProcessing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(12.dp),
+                    color = contentColor,
+                    strokeWidth = 1.5.dp,
+                )
+            }
+            Text(
+                text = label,
+                style = AppDesign.typography.caption,
+                color = contentColor,
+                maxLines = 1,
+            )
         }
     }
 }
@@ -485,7 +704,9 @@ private fun ResumeContentScreen(
     onSaveOcrText: (String) -> Unit,
 ) {
     val context = LocalContext.current
-    val fileStore = remember { org.koin.core.context.GlobalContext.get().get<com.example.interviewassistant.core.file.AppFileStore>() }
+    val fileStore = remember {
+        org.koin.core.context.GlobalContext.get().get<com.example.interviewassistant.core.file.AppFileStore>()
+    }
     val privacyRedactor = remember { org.koin.core.context.GlobalContext.get().get<PrivacyRedactor>() }
     val savedContent = resume.ocrText.orEmpty()
     val originalContent = resume.ocrOriginalText.orEmpty().ifBlank { savedContent }
@@ -495,6 +716,7 @@ private fun ResumeContentScreen(
     var renderHtml by remember(resume.id) { mutableStateOf(savedContent.looksLikeHtml()) }
     var redactPreview by remember(resume.id) { mutableStateOf(false) }
     var copied by remember { mutableStateOf(false) }
+    var showMoreMenu by remember { mutableStateOf(false) }
     var assetBaseUri by remember { mutableStateOf<String?>(null) }
     val isDirty = draftText != savedContent
     val canCompareOriginal = originalContent.isNotBlank() && originalContent != savedContent
@@ -544,22 +766,23 @@ private fun ResumeContentScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text(strings.get(AppStringId.RESUME_CONTENT_TITLE)) },
+                title = {
+                    Text(
+                        text = strings.get(AppStringId.RESUME_CONTENT_TITLE),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
                 navigationIcon = {
-                    TextButton(onClick = ::handleBack) {
-                        Text(strings.get(AppStringId.COMMON_BACK))
+                    IconButton(onClick = ::handleBack) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_arrow_back),
+                            contentDescription = strings.get(AppStringId.COMMON_BACK),
+                        )
                     }
                 },
                 actions = {
                     if (isEditing) {
-                        if (originalContent.isNotBlank()) {
-                            TextButton(
-                                onClick = { draftText = originalContent },
-                                enabled = draftText != originalContent,
-                            ) {
-                                Text(strings.get(AppStringId.RESUME_RESTORE_ORIGINAL))
-                            }
-                        }
                         TextButton(onClick = { exitEditing(discard = true) }) {
                             Text(strings.get(AppStringId.COMMON_CANCEL))
                         }
@@ -586,55 +809,86 @@ private fun ResumeContentScreen(
                         ) {
                             Text(strings.get(AppStringId.RESUME_EDIT))
                         }
-                        if (canCompareOriginal || originalContent.isNotBlank()) {
-                            TextButton(
-                                onClick = { showOriginal = !showOriginal },
-                                enabled = originalContent.isNotBlank(),
-                            ) {
-                                Text(
-                                    strings.get(
-                                        if (showOriginal) {
-                                            AppStringId.RESUME_VIEW_CURRENT
-                                        } else {
-                                            AppStringId.RESUME_VIEW_ORIGINAL
-                                        },
-                                    ),
+                        Box {
+                            IconButton(onClick = { showMoreMenu = true }) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_more_vert),
+                                    contentDescription = strings.get(AppStringId.RESUME_CONTENT_TITLE),
                                 )
                             }
-                        }
-                        TextButton(onClick = { redactPreview = !redactPreview }) {
-                            Text(
-                                strings.get(
-                                    if (redactPreview) {
-                                        AppStringId.RESUME_REDACT_ORIGINAL
-                                    } else {
-                                        AppStringId.RESUME_REDACT_PREVIEW
+                            DropdownMenu(
+                                expanded = showMoreMenu,
+                                onDismissRequest = { showMoreMenu = false },
+                            ) {
+                                if (canCompareOriginal || originalContent.isNotBlank()) {
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                strings.get(
+                                                    if (showOriginal) {
+                                                        AppStringId.RESUME_VIEW_CURRENT
+                                                    } else {
+                                                        AppStringId.RESUME_VIEW_ORIGINAL
+                                                    },
+                                                ),
+                                            )
+                                        },
+                                        enabled = originalContent.isNotBlank(),
+                                        onClick = {
+                                            showOriginal = !showOriginal
+                                            showMoreMenu = false
+                                        },
+                                    )
+                                }
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            strings.get(
+                                                if (redactPreview) {
+                                                    AppStringId.RESUME_REDACT_ORIGINAL
+                                                } else {
+                                                    AppStringId.RESUME_REDACT_PREVIEW
+                                                },
+                                            ),
+                                        )
                                     },
-                                ),
-                            )
-                        }
-                        TextButton(onClick = { renderHtml = !renderHtml }) {
-                            Text(
-                                strings.get(
-                                    if (renderHtml) {
-                                        AppStringId.RESUME_SHOW_SOURCE
-                                    } else {
-                                        AppStringId.RESUME_RENDER_HTML
+                                    onClick = {
+                                        redactPreview = !redactPreview
+                                        showMoreMenu = false
                                     },
-                                ),
-                            )
-                        }
-                        TextButton(
-                            onClick = {
-                                copyTextToClipboard(context, displayContent)
-                                copied = true
-                            },
-                        ) {
-                            Text(
-                                strings.get(
-                                    if (copied) AppStringId.RESUME_COPIED else AppStringId.RESUME_COPY,
-                                ),
-                            )
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            strings.get(
+                                                if (renderHtml) {
+                                                    AppStringId.RESUME_SHOW_SOURCE
+                                                } else {
+                                                    AppStringId.RESUME_RENDER_HTML
+                                                },
+                                            ),
+                                        )
+                                    },
+                                    onClick = {
+                                        renderHtml = !renderHtml
+                                        showMoreMenu = false
+                                    },
+                                )
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            strings.get(
+                                                if (copied) AppStringId.RESUME_COPIED else AppStringId.RESUME_COPY,
+                                            ),
+                                        )
+                                    },
+                                    onClick = {
+                                        copyTextToClipboard(context, displayContent)
+                                        copied = true
+                                        showMoreMenu = false
+                                    },
+                                )
+                            }
                         }
                     }
                 },
@@ -648,7 +902,20 @@ private fun ResumeContentScreen(
                 .padding(AppDesign.spacing.lg),
             verticalArrangement = Arrangement.spacedBy(AppDesign.spacing.md),
         ) {
-            Text(resume.displayName, style = AppDesign.typography.sectionTitle)
+            Text(
+                text = resume.displayName,
+                style = AppDesign.typography.sectionTitle,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (isEditing && originalContent.isNotBlank()) {
+                TextButton(
+                    onClick = { draftText = originalContent },
+                    enabled = draftText != originalContent,
+                ) {
+                    Text(strings.get(AppStringId.RESUME_RESTORE_ORIGINAL))
+                }
+            }
             if (!isEditing && showOriginal) {
                 Text(
                     text = strings.get(AppStringId.RESUME_VIEW_ORIGINAL),
@@ -732,19 +999,53 @@ private fun SessionCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = AppDesign.colors.surfaceMuted),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        colors = CardDefaults.cardColors(containerColor = AppDesign.colors.surface),
+        border = BorderStroke(1.dp, AppDesign.colors.divider),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth().padding(AppDesign.spacing.lg),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+            verticalArrangement = Arrangement.spacedBy(AppDesign.spacing.md),
         ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(session.title, style = AppDesign.typography.itemTitle)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppDesign.spacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Surface(
+                    shape = MaterialTheme.shapes.medium,
+                    color = AppDesign.colors.brandSubtle,
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_assistant),
+                        contentDescription = null,
+                        modifier = Modifier.padding(AppDesign.spacing.sm).size(22.dp),
+                        tint = AppDesign.colors.brand,
+                    )
+                }
+                Text(
+                    text = session.title,
+                    modifier = Modifier.weight(1f),
+                    style = AppDesign.typography.itemTitle,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
-            TextButton(onClick = onOpen) { Text(strings.get(AppStringId.OPEN_SESSION)) }
-            TextButton(onClick = onDelete) { Text(strings.get(AppStringId.COMMON_DELETE)) }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppDesign.spacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                FilledTonalButton(modifier = Modifier.weight(1f), onClick = onOpen) {
+                    Text(strings.get(AppStringId.OPEN_SESSION))
+                }
+                TextButton(onClick = onDelete) {
+                    Text(
+                        text = strings.get(AppStringId.COMMON_DELETE),
+                        color = AppDesign.colors.danger,
+                    )
+                }
+            }
         }
     }
 }

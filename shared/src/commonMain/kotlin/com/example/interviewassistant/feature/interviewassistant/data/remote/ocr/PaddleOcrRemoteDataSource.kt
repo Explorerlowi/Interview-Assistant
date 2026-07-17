@@ -35,6 +35,7 @@ data class RemoteOcrJob(
 data class OcrDocumentResult(
     val text: String,
     val images: Map<String, String>,
+    val outputImages: Map<String, String> = emptyMap(),
 )
 
 /**
@@ -169,6 +170,7 @@ class PaddleOcrRemoteDataSource(
 fun parseOcrDocument(content: String, json: Json = defaultJson()): OcrDocumentResult {
     val texts = mutableListOf<String>()
     val images = linkedMapOf<String, String>()
+    val outputImages = linkedMapOf<String, String>()
     content.lineSequence()
         .map(String::trim)
         .filter(String::isNotEmpty)
@@ -176,7 +178,7 @@ fun parseOcrDocument(content: String, json: Json = defaultJson()): OcrDocumentRe
             json.decodeFromString<OcrJsonLine>(line)
                 .result
                 .layoutParsingResults
-                .forEach { result ->
+                .forEachIndexed { pageIndex, result ->
                     val text = result.markdown.text.trim()
                     if (text.isNotEmpty()) texts += text
                     result.markdown.images.forEach { (path, url) ->
@@ -184,11 +186,26 @@ fun parseOcrDocument(content: String, json: Json = defaultJson()): OcrDocumentRe
                             images.putIfAbsent(path, url)
                         }
                     }
+                    result.outputImages.forEach { (kind, url) ->
+                        if (kind.isNotBlank() && url.isNotBlank()) {
+                            val safeKind = kind.replace(Regex("[^A-Za-z0-9._-]"), "_")
+                            val extension = url.substringBefore('?')
+                                .substringAfterLast('.', missingDelimiterValue = "jpg")
+                                .lowercase()
+                                .takeIf { it in SUPPORTED_IMAGE_EXTENSIONS }
+                                ?: "jpg"
+                            outputImages.putIfAbsent(
+                                "outputImages/p${pageIndex + 1}_${safeKind}.$extension",
+                                url,
+                            )
+                        }
+                    }
                 }
         }
     return OcrDocumentResult(
         text = texts.joinToString(separator = "\n\n"),
         images = images,
+        outputImages = outputImages,
     )
 }
 
@@ -203,6 +220,8 @@ private fun defaultJson(): Json = Json {
     isLenient = true
     explicitNulls = false
 }
+
+private val SUPPORTED_IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp")
 
 @Serializable
 private data class SubmitJobResponse(
@@ -252,6 +271,7 @@ private data class OcrJsonResult(
 @Serializable
 private data class LayoutParsingResult(
     val markdown: MarkdownResult,
+    val outputImages: Map<String, String> = emptyMap(),
 )
 
 @Serializable

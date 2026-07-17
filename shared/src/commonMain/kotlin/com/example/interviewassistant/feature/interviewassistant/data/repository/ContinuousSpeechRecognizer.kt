@@ -2,6 +2,8 @@ package com.example.interviewassistant.feature.interviewassistant.data.repositor
 
 import com.example.interviewassistant.core.audio.AudioFrame
 import com.example.interviewassistant.core.audio.AudioSource
+import com.example.interviewassistant.core.i18n.AppStringId
+import com.example.interviewassistant.core.i18n.StringsProvider
 import com.example.interviewassistant.feature.interviewassistant.data.remote.speech.SpeechRecognitionEvent
 import com.example.interviewassistant.feature.interviewassistant.data.remote.speech.XunfeiSpeechGateway
 import com.example.interviewassistant.feature.interviewassistant.domain.repository.ProviderConfigurationRepository
@@ -24,15 +26,26 @@ class ContinuousSpeechRecognizer(
     private val audioSource: AudioSource,
     private val providerConfiguration: ProviderConfigurationRepository,
     private val gateway: XunfeiSpeechGateway,
+    private val strings: StringsProvider,
 ) : SpeechRecognizer {
     override fun recognize(): Flow<SpeechRecognitionEvent> = channelFlow {
         val credentials = providerConfiguration.xunfeiCredentials()
         if (credentials == null) {
-            send(SpeechRecognitionEvent.Failure(null, "iFlytek credentials are not configured"))
+            send(
+                SpeechRecognitionEvent.Failure(
+                    code = null,
+                    message = strings.get(AppStringId.ERROR_PROVIDER_NOT_CONFIGURED),
+                ),
+            )
             return@channelFlow
         }
         if (!audioSource.isAvailable) {
-            send(SpeechRecognitionEvent.Failure(null, "The selected audio source is unavailable"))
+            send(
+                SpeechRecognitionEvent.Failure(
+                    code = null,
+                    message = strings.get(AppStringId.ERROR_PERMISSION_MICROPHONE),
+                ),
+            )
             return@channelFlow
         }
 

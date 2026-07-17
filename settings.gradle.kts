@@ -26,6 +26,45 @@ dependencyResolutionManagement {
 
         google()
         mavenCentral()
+        ivy {
+            name = "SherpaOnnxGitHubReleases"
+            url = uri("https://github.com/k2-fsa/sherpa-onnx/releases/download")
+            patternLayout {
+                artifact("v[revision]/sherpa-onnx-[revision].[ext]")
+            }
+            metadataSources {
+                artifact()
+            }
+            content {
+                includeModule("com.k2fsa", "sherpa-onnx")
+            }
+        }
+        ivy {
+            name = "SherpaOnnxJavaGitHubReleases"
+            url = uri("https://github.com/k2-fsa/sherpa-onnx/releases/download")
+            patternLayout {
+                artifact("v[revision]/sherpa-onnx-v[revision].[ext]")
+            }
+            metadataSources {
+                artifact()
+            }
+            content {
+                includeModule("com.k2fsa", "sherpa-onnx-java")
+            }
+        }
+        ivy {
+            name = "SherpaOnnxWindowsNativeGitHubReleases"
+            url = uri("https://github.com/k2-fsa/sherpa-onnx/releases/download")
+            patternLayout {
+                artifact("v[revision]/sherpa-onnx-native-lib-win-x64-v[revision].[ext]")
+            }
+            metadataSources {
+                artifact()
+            }
+            content {
+                includeModule("com.k2fsa", "sherpa-onnx-native-win-x64")
+            }
+        }
     }
 }
 

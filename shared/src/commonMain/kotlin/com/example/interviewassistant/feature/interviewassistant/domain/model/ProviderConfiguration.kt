@@ -9,6 +9,48 @@ enum class AnswerTriggerMode {
 }
 
 /**
+ * Selects the speech-recognition backend used by live interview sessions.
+ */
+enum class SpeechRecognitionMode {
+    XUNFEI,
+    SENSE_VOICE_ON_DEVICE,
+}
+
+/**
+ * Additional understanding attributes returned with a speech-recognition segment.
+ *
+ * Values are normalized runtime labels. Unknown future labels are preserved instead of discarded.
+ *
+ * @property language Detected or selected language code.
+ * @property emotion Detected speech-emotion label.
+ * @property audioEvent Detected acoustic-event label.
+ */
+data class SpeechUnderstandingMetadata(
+    val language: String? = null,
+    val emotion: String? = null,
+    val audioEvent: String? = null,
+) {
+    /** Whether no understanding attribute was returned by the recognizer. */
+    val isEmpty: Boolean
+        get() = language == null && emotion == null && audioEvent == null
+}
+
+/**
+ * Non-secret settings for the on-device SenseVoice recognizer.
+ *
+ * @property language SenseVoice language code. Supported values are `zh`, `en`, `ja`, `ko`, `yue`, and `auto`.
+ * @property useInverseTextNormalization Whether numbers and punctuation are normalized for display.
+ * @property partialIntervalMillis Minimum interval between simulated-streaming partial decodes.
+ * @property maxSpeechDurationSeconds Maximum VAD segment duration before it is finalized.
+ */
+data class SenseVoiceConfiguration(
+    val language: String = "zh",
+    val useInverseTextNormalization: Boolean = true,
+    val partialIntervalMillis: Int = 800,
+    val maxSpeechDurationSeconds: Int = 15,
+)
+
+/**
  * Non-secret PaddleOCR connection settings.
  *
  * @property endpoint Asynchronous OCR job endpoint.
@@ -79,6 +121,8 @@ data class LlmConfiguration(
 data class ProviderConfiguration(
     val paddle: PaddleConfiguration = PaddleConfiguration(),
     val xunfei: XunfeiConfiguration = XunfeiConfiguration(),
+    val speechRecognitionMode: SpeechRecognitionMode = SpeechRecognitionMode.XUNFEI,
+    val senseVoice: SenseVoiceConfiguration = SenseVoiceConfiguration(),
     val llm: LlmConfiguration = LlmConfiguration(),
     val answerTriggerMode: AnswerTriggerMode = AnswerTriggerMode.MANUAL,
 )

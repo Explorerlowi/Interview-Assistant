@@ -5,6 +5,7 @@ import com.example.interviewassistant.core.network.XunfeiAuthUrlFactory
 import com.example.interviewassistant.core.util.TimeProvider
 import com.example.interviewassistant.feature.interviewassistant.domain.model.XunfeiConfiguration
 import com.example.interviewassistant.feature.interviewassistant.domain.model.XunfeiCredentials
+import com.example.interviewassistant.feature.interviewassistant.domain.model.SpeechUnderstandingMetadata
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.websocket.webSocket
 import io.ktor.util.encodeBase64
@@ -27,8 +28,15 @@ import kotlinx.serialization.json.Json
  * Incremental recognition events emitted by the iFlytek data source.
  */
 sealed interface SpeechRecognitionEvent {
-    data class Partial(val text: String) : SpeechRecognitionEvent
-    data class Final(val text: String) : SpeechRecognitionEvent
+    data class Partial(
+        val text: String,
+        val metadata: SpeechUnderstandingMetadata = SpeechUnderstandingMetadata(),
+    ) : SpeechRecognitionEvent
+
+    data class Final(
+        val text: String,
+        val metadata: SpeechUnderstandingMetadata = SpeechUnderstandingMetadata(),
+    ) : SpeechRecognitionEvent
     data class Failure(val code: Int?, val message: String) : SpeechRecognitionEvent
     data object SessionRotated : SpeechRecognitionEvent
 }

@@ -24,7 +24,7 @@ class ProtocolParsersTest {
     fun `PaddleOCR JSONL preserves page order and collects image urls`() {
         val jsonl = """
             {"result":{"layoutParsingResults":[{"markdown":{"text":"第一页","images":{"imgs/a.jpg":"https://cdn/a.jpg"}}}]}}
-            {"result":{"layoutParsingResults":[{"markdown":{"text":"第二页","images":{"imgs/b.jpg":"https://cdn/b.jpg"}},"outputImages":{"x":"url"}}]}}
+            {"result":{"layoutParsingResults":[{"markdown":{"text":"第二页","images":{"imgs/b.jpg":"https://cdn/b.jpg"}},"outputImages":{"layout":"https://cdn/layout.jpg"}}]}}
         """.trimIndent()
 
         val document = parseOcrDocument(jsonl)
@@ -35,6 +35,10 @@ class ProtocolParsersTest {
                 "imgs/b.jpg" to "https://cdn/b.jpg",
             ),
             document.images,
+        )
+        assertEquals(
+            mapOf("outputImages/p1_layout.jpg" to "https://cdn/layout.jpg"),
+            document.outputImages,
         )
         assertEquals("第一页\n\n第二页", parseJsonLines(jsonl))
     }

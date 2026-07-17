@@ -70,6 +70,7 @@ kotlin {
                 implementation(libs.kotlinx.coroutines.android)
                 implementation(libs.koin.android)
                 implementation(libs.sqldelight.android.driver)
+                implementation("com.k2fsa:sherpa-onnx:${libs.versions.sherpaOnnx.get()}@aar")
             }
         }
         val desktopMain by getting {
@@ -78,6 +79,8 @@ kotlin {
                 implementation(libs.kotlinx.coroutines.swing)
                 implementation(libs.sqldelight.sqlite.driver)
                 implementation(libs.jna.platform)
+                implementation(libs.sherpa.onnx.java)
+                runtimeOnly(libs.sherpa.onnx.native.win.x64)
             }
         }
         val iosX64Main by getting

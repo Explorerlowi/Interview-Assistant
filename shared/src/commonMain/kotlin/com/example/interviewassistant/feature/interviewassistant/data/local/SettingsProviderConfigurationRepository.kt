@@ -9,6 +9,8 @@ import com.example.interviewassistant.feature.interviewassistant.domain.model.Pr
 import com.example.interviewassistant.feature.interviewassistant.domain.model.ProviderSecretStatus
 import com.example.interviewassistant.feature.interviewassistant.domain.model.ProviderSecretUpdate
 import com.example.interviewassistant.feature.interviewassistant.domain.model.ProviderSecrets
+import com.example.interviewassistant.feature.interviewassistant.domain.model.SenseVoiceConfiguration
+import com.example.interviewassistant.feature.interviewassistant.domain.model.SpeechRecognitionMode
 import com.example.interviewassistant.feature.interviewassistant.domain.model.XunfeiConfiguration
 import com.example.interviewassistant.feature.interviewassistant.domain.model.XunfeiCredentials
 import com.example.interviewassistant.feature.interviewassistant.domain.repository.ProviderConfigurationRepository
@@ -37,6 +39,11 @@ class SettingsProviderConfigurationRepository(
         settings.putString(KEY_XUNFEI_DOMAIN, normalized.xunfei.domain)
         settings.putString(KEY_XUNFEI_ACCENT, normalized.xunfei.accent)
         settings.putInt(KEY_XUNFEI_EOS, normalized.xunfei.endOfSpeechMillis)
+        settings.putString(KEY_SPEECH_MODE, normalized.speechRecognitionMode.name)
+        settings.putString(KEY_SENSEVOICE_LANGUAGE, normalized.senseVoice.language)
+        settings.putBoolean(KEY_SENSEVOICE_ITN, normalized.senseVoice.useInverseTextNormalization)
+        settings.putInt(KEY_SENSEVOICE_PARTIAL_INTERVAL, normalized.senseVoice.partialIntervalMillis)
+        settings.putInt(KEY_SENSEVOICE_MAX_SPEECH, normalized.senseVoice.maxSpeechDurationSeconds)
         settings.putString(KEY_LLM_BASE_URL, normalized.llm.baseUrl)
         settings.putString(KEY_LLM_MODEL, normalized.llm.model)
         settings.putString(KEY_LLM_SYSTEM_PROMPT, normalized.llm.systemPrompt)
@@ -108,6 +115,17 @@ class SettingsProviderConfigurationRepository(
                 accent = settings.getString(KEY_XUNFEI_ACCENT, "mandarin"),
                 endOfSpeechMillis = settings.getInt(KEY_XUNFEI_EOS, 2_000),
             ),
+            speechRecognitionMode = runCatching {
+                SpeechRecognitionMode.valueOf(
+                    settings.getString(KEY_SPEECH_MODE, SpeechRecognitionMode.XUNFEI.name),
+                )
+            }.getOrDefault(SpeechRecognitionMode.XUNFEI),
+            senseVoice = SenseVoiceConfiguration(
+                language = settings.getString(KEY_SENSEVOICE_LANGUAGE, "zh"),
+                useInverseTextNormalization = settings.getBoolean(KEY_SENSEVOICE_ITN, true),
+                partialIntervalMillis = settings.getInt(KEY_SENSEVOICE_PARTIAL_INTERVAL, 800),
+                maxSpeechDurationSeconds = settings.getInt(KEY_SENSEVOICE_MAX_SPEECH, 15),
+            ),
             llm = LlmConfiguration(
                 baseUrl = settings.getString(KEY_LLM_BASE_URL, LlmConfiguration.DEFAULT_BASE_URL),
                 model = settings.getString(KEY_LLM_MODEL, LlmConfiguration.DEFAULT_MODEL),
@@ -148,6 +166,12 @@ class SettingsProviderConfigurationRepository(
                 accent = xunfei.accent.trim(),
                 endOfSpeechMillis = xunfei.endOfSpeechMillis.coerceIn(1_000, 10_000),
             ),
+            senseVoice = senseVoice.copy(
+                language = senseVoice.language.trim().lowercase().takeIf(SUPPORTED_SENSEVOICE_LANGUAGES::contains)
+                    ?: "zh",
+                partialIntervalMillis = senseVoice.partialIntervalMillis.coerceIn(400, 3_000),
+                maxSpeechDurationSeconds = senseVoice.maxSpeechDurationSeconds.coerceIn(5, 30),
+            ),
             llm = llm.copy(
                 baseUrl = llm.baseUrl.trim().trimEnd('/'),
                 model = llm.model.trim(),
@@ -165,6 +189,11 @@ class SettingsProviderConfigurationRepository(
         const val KEY_XUNFEI_DOMAIN = "provider.xunfei.domain"
         const val KEY_XUNFEI_ACCENT = "provider.xunfei.accent"
         const val KEY_XUNFEI_EOS = "provider.xunfei.eos"
+        const val KEY_SPEECH_MODE = "provider.speech.mode"
+        const val KEY_SENSEVOICE_LANGUAGE = "provider.senseVoice.language"
+        const val KEY_SENSEVOICE_ITN = "provider.senseVoice.itn"
+        const val KEY_SENSEVOICE_PARTIAL_INTERVAL = "provider.senseVoice.partialInterval"
+        const val KEY_SENSEVOICE_MAX_SPEECH = "provider.senseVoice.maxSpeechSeconds"
         const val KEY_LLM_BASE_URL = "provider.llm.baseUrl"
         const val KEY_LLM_MODEL = "provider.llm.model"
         const val KEY_LLM_SYSTEM_PROMPT = "provider.llm.systemPrompt"
@@ -172,5 +201,6 @@ class SettingsProviderConfigurationRepository(
         const val KEY_LLM_CONTEXT = "provider.llm.context"
         const val KEY_LLM_REDACT_PII = "provider.llm.redactPii"
         const val KEY_TRIGGER_MODE = "assistant.triggerMode"
+        val SUPPORTED_SENSEVOICE_LANGUAGES = setOf("zh", "en", "ja", "ko", "yue", "auto")
     }
 }

@@ -68,6 +68,67 @@ class AndroidStringsProvider(private val context: Context) : StringsProvider {
             AppStringId.TRANSCRIPT_EMPTY -> R.string.transcript_empty
             AppStringId.ANSWER_EMPTY -> R.string.answer_empty
             AppStringId.SETTINGS_TITLE -> R.string.settings_title
+            AppStringId.SETTINGS_SPEECH_RECOGNITION -> R.string.settings_speech_recognition
+            AppStringId.SETTINGS_SPEECH_XUNFEI -> R.string.settings_speech_xunfei
+            AppStringId.SETTINGS_SPEECH_SENSEVOICE -> R.string.settings_speech_sensevoice
+            AppStringId.SETTINGS_XUNFEI_DESCRIPTION -> R.string.settings_xunfei_description
+            AppStringId.SETTINGS_SENSEVOICE_DESCRIPTION -> R.string.settings_sensevoice_description
+            AppStringId.SETTINGS_SENSEVOICE_LANGUAGE -> R.string.settings_sensevoice_language
+            AppStringId.LANGUAGE_AUTO -> R.string.language_auto
+            AppStringId.LANGUAGE_CHINESE -> R.string.language_chinese
+            AppStringId.LANGUAGE_ENGLISH -> R.string.language_english
+            AppStringId.LANGUAGE_CANTONESE -> R.string.language_cantonese
+            AppStringId.LANGUAGE_JAPANESE -> R.string.language_japanese
+            AppStringId.LANGUAGE_KOREAN -> R.string.language_korean
+            AppStringId.SETTINGS_SENSEVOICE_MODEL -> R.string.settings_sensevoice_model
+            AppStringId.SETTINGS_SENSEVOICE_MODEL_UNAVAILABLE -> R.string.settings_sensevoice_model_unavailable
+            AppStringId.SETTINGS_SENSEVOICE_MODEL_NOT_INSTALLED -> R.string.settings_sensevoice_model_not_installed
+            AppStringId.SETTINGS_SENSEVOICE_MODEL_PREPARING -> R.string.settings_sensevoice_model_preparing
+            AppStringId.SETTINGS_SENSEVOICE_MODEL_DOWNLOADING -> R.string.settings_sensevoice_model_downloading
+            AppStringId.SETTINGS_SENSEVOICE_MODEL_READY -> R.string.settings_sensevoice_model_ready
+            AppStringId.SETTINGS_SENSEVOICE_MODEL_FAILED -> R.string.settings_sensevoice_model_failed
+            AppStringId.SETTINGS_SENSEVOICE_FAILURE_NETWORK -> R.string.settings_sensevoice_failure_network
+            AppStringId.SETTINGS_SENSEVOICE_FAILURE_TIMEOUT -> R.string.settings_sensevoice_failure_timeout
+            AppStringId.SETTINGS_SENSEVOICE_FAILURE_SERVER -> R.string.settings_sensevoice_failure_server
+            AppStringId.SETTINGS_SENSEVOICE_FAILURE_STORAGE -> R.string.settings_sensevoice_failure_storage
+            AppStringId.SETTINGS_SENSEVOICE_FAILURE_VERIFICATION -> R.string.settings_sensevoice_failure_verification
+            AppStringId.SETTINGS_SENSEVOICE_FAILURE_UNKNOWN -> R.string.settings_sensevoice_failure_unknown
+            AppStringId.SETTINGS_SENSEVOICE_RETRY_HINT -> R.string.settings_sensevoice_retry_hint
+            AppStringId.SETTINGS_SENSEVOICE_DOWNLOAD -> R.string.settings_sensevoice_download
+            AppStringId.SETTINGS_SENSEVOICE_TEST_TITLE -> R.string.settings_sensevoice_test_title
+            AppStringId.SETTINGS_SENSEVOICE_TEST_DESCRIPTION -> R.string.settings_sensevoice_test_description
+            AppStringId.SETTINGS_SENSEVOICE_TEST_CURRENT_MODEL -> R.string.settings_sensevoice_test_current_model
+            AppStringId.SETTINGS_SPEECH_TEST_XUNFEI_ENGINE -> R.string.settings_speech_test_xunfei_engine
+            AppStringId.SETTINGS_SPEECH_TEST_CREDENTIALS_REQUIRED -> {
+                R.string.settings_speech_test_credentials_required
+            }
+            AppStringId.SETTINGS_SPEECH_TEST_SAVED_CONFIG_HINT -> R.string.settings_speech_test_saved_config_hint
+            AppStringId.SETTINGS_SENSEVOICE_TEST_MODEL_REQUIRED -> R.string.settings_sensevoice_test_model_required
+            AppStringId.SETTINGS_SENSEVOICE_TEST_IDLE -> R.string.settings_sensevoice_test_idle
+            AppStringId.SETTINGS_SENSEVOICE_TEST_LISTENING -> R.string.settings_sensevoice_test_listening
+            AppStringId.SETTINGS_SENSEVOICE_TEST_RESULT_EMPTY -> R.string.settings_sensevoice_test_result_empty
+            AppStringId.SETTINGS_SENSEVOICE_TEST_START -> R.string.settings_sensevoice_test_start
+            AppStringId.SETTINGS_SENSEVOICE_TEST_STOP -> R.string.settings_sensevoice_test_stop
+            AppStringId.SETTINGS_SPEECH_UNDERSTANDING -> R.string.settings_speech_understanding
+            AppStringId.SETTINGS_DETECTED_LANGUAGE -> R.string.settings_detected_language
+            AppStringId.SETTINGS_DETECTED_EMOTION -> R.string.settings_detected_emotion
+            AppStringId.SETTINGS_DETECTED_AUDIO_EVENT -> R.string.settings_detected_audio_event
+            AppStringId.SETTINGS_RESULT_PENDING -> R.string.settings_result_pending
+            AppStringId.EMOTION_HAPPY -> R.string.emotion_happy
+            AppStringId.EMOTION_SAD -> R.string.emotion_sad
+            AppStringId.EMOTION_ANGRY -> R.string.emotion_angry
+            AppStringId.EMOTION_NEUTRAL -> R.string.emotion_neutral
+            AppStringId.EMOTION_FEARFUL -> R.string.emotion_fearful
+            AppStringId.EMOTION_DISGUSTED -> R.string.emotion_disgusted
+            AppStringId.EMOTION_SURPRISED -> R.string.emotion_surprised
+            AppStringId.AUDIO_EVENT_SPEECH -> R.string.audio_event_speech
+            AppStringId.AUDIO_EVENT_BGM -> R.string.audio_event_bgm
+            AppStringId.AUDIO_EVENT_APPLAUSE -> R.string.audio_event_applause
+            AppStringId.AUDIO_EVENT_LAUGHTER -> R.string.audio_event_laughter
+            AppStringId.AUDIO_EVENT_CRY -> R.string.audio_event_cry
+            AppStringId.AUDIO_EVENT_SNEEZE -> R.string.audio_event_sneeze
+            AppStringId.AUDIO_EVENT_BREATH -> R.string.audio_event_breath
+            AppStringId.AUDIO_EVENT_COUGH -> R.string.audio_event_cough
             AppStringId.SETTINGS_PADDLE -> R.string.settings_paddle
             AppStringId.SETTINGS_XUNFEI -> R.string.settings_xunfei
             AppStringId.SETTINGS_LLM -> R.string.settings_llm
@@ -92,6 +153,10 @@ class AndroidStringsProvider(private val context: Context) : StringsProvider {
             AppStringId.DESKTOP_ALWAYS_ON_TOP -> R.string.desktop_always_on_top
             AppStringId.ERROR_PERMISSION_MICROPHONE -> R.string.error_permission_microphone
             AppStringId.ERROR_PROVIDER_NOT_CONFIGURED -> R.string.error_provider_not_configured
+            AppStringId.ERROR_SENSEVOICE_UNAVAILABLE -> R.string.error_sensevoice_unavailable
+            AppStringId.ERROR_SENSEVOICE_MODEL_NOT_READY -> R.string.error_sensevoice_model_not_ready
+            AppStringId.ERROR_SENSEVOICE_INFERENCE -> R.string.error_sensevoice_inference
+            AppStringId.ERROR_SPEECH_RECOGNITION -> R.string.error_speech_recognition
             AppStringId.ERROR_GENERIC -> R.string.error_generic
         }
         return context.getString(resId)

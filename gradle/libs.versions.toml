@@ -14,6 +14,7 @@ ksp = "2.0.21-1.0.27"
 multiplatformSettings = "1.2.0"
 sqldelight = "2.0.2"
 jna = "5.19.1"
+sherpaOnnx = "1.13.2"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -57,6 +58,9 @@ sqldelight-sqlite-driver = { module = "app.cash.sqldelight:sqlite-driver", versi
 sqldelight-native-driver = { module = "app.cash.sqldelight:native-driver", version.ref = "sqldelight" }
 
 jna-platform = { module = "net.java.dev.jna:jna-platform", version.ref = "jna" }
+sherpa-onnx-android = { module = "com.k2fsa:sherpa-onnx", version.ref = "sherpaOnnx" }
+sherpa-onnx-java = { module = "com.k2fsa:sherpa-onnx-java", version.ref = "sherpaOnnx" }
+sherpa-onnx-native-win-x64 = { module = "com.k2fsa:sherpa-onnx-native-win-x64", version.ref = "sherpaOnnx" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
